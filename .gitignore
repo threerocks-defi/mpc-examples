@@ -1,0 +1,37 @@
+# Logs
+yarn-debug.log*
+yarn-error.log*
+
+# Dependency directories
+node_modules/
+
+# Yarn
+.yarn/*
+!.yarn/patches
+!.yarn/releases
+!.yarn/plugins
+!.yarn/sdks
+!.yarn/versions
+.pnp.*
+
+# Hardhat artifacts
+artifacts/
+cache/
+
+# Foundry artifacts
+out/
+
+# Environment variables
+.env/
+
+# Build artifacts
+dist/
+pkg/balancer-js/src/typechain/*
+
+# Forge
+forge-artifacts/
+forge-cache/
+
+# IDE Settings
+.idea
+**/.DS_Store

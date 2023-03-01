@@ -1,0 +1,25 @@
+{
+  "name": "@orbcollective/mpc-examples-repo",
+  "version": "1.0.0",
+  "description": "Simplified examples of possible functionality in a Managed Pool Controller",
+  "license": "GPL-3.0-only",
+  "homepage": "https://github.com/orbcollective/mpc-examples#readme",
+  "repository": "git@github.com:orbcollective/mpc-examples.git",
+  "bugs": {
+    "url": "https://github.com/orbcollective/mpc-examples/issues"
+  },
+  "engines": {
+    "node": ">=14.18.0 <17"
+  },
+  "scripts": {
+    "build": "yarn workspaces foreach --parallel --verbose run build",
+    "lint": "yarn workspaces foreach --parallel --verbose run lint",
+    "test": "yarn workspaces foreach --parallel --verbose run test"
+  },
+  "workspaces": [
+    "pkg/*"
+  ],
+  "dependencies": {
+    "@openzeppelin/contracts": "^4.8.1"
+  }
+}
