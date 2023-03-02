@@ -8,5 +8,4 @@ module.exports = {
       'prettier/prettier': 'error',
       'mocha-no-only/mocha-no-only': ['error'],
     },
-  };
-  
+};
