@@ -74,11 +74,7 @@ contract TestWETH is AccessControl, IWETH {
         return transferFrom(msg.sender, dst, wad);
     }
 
-    function transferFrom(
-        address src,
-        address dst,
-        uint256 wad
-    ) public override returns (bool) {
+    function transferFrom(address src, address dst, uint256 wad) public override returns (bool) {
         require(balanceOf[src] >= wad, "INSUFFICIENT_BALANCE");
 
         if (src != msg.sender && allowance[src][msg.sender] != uint256(-1)) {

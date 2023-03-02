@@ -1,4 +1,4 @@
-import { assert, expect } from 'chai';
+import { assert /* expect */ } from 'chai';
 import { ethers } from 'hardhat';
 import { bn, fp } from '@orbcollective/shared-dependencies/numbers';
 import { Contract } from '@ethersproject/contracts';
@@ -51,11 +51,13 @@ async function deployController(deployer: SignerWithAddress): Promise<Contract> 
   return ethers.getContractAt('NullController', eventController.args.controller);
 }
 
+/* This fn will be useful for future tests, though it is extraneous here
 async function fastForward(sec: number) {
   const mostRecentBlock = await ethers.provider.getBlockNumber();
   const timestamp = (await ethers.provider.getBlock(mostRecentBlock)).timestamp;
   await ethers.provider.send('evm_mine', [timestamp + sec]);
 }
+*/
 
 async function deployBalancerManagedPoolFactory(
   task: string,
@@ -89,9 +91,9 @@ describe('NullController', function () {
   let tokens: TokenList;
 
   before('Setup', async () => {
-  	let a, b;
-    // appease the @typescript-eslint/no-unused-vars lint error
-    ({ vault, tokens, deployer, a, b} = await setupEnvironment());
+    /* eslint-disable @typescript-eslint/no-unused-vars */
+    let trader, liquidityProvider;
+    ({ vault, tokens, deployer, trader, liquidityProvider } = await setupEnvironment());
 
     const pfpArgs = [vault.address, fp(0.1), fp(0.1)];
     const protocolFeesProvider = await deployBalancerContract(
