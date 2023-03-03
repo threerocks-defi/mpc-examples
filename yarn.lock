@@ -6598,7 +6598,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"hardhat@npm:^2.12.2, hardhat@npm:^2.4.1":
+"hardhat@npm:^2.12.5, hardhat@npm:^2.4.1":
   version: 2.13.0
   resolution: "hardhat@npm:2.13.0"
   dependencies:
