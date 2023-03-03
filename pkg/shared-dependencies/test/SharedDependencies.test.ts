@@ -1,4 +1,3 @@
 describe('Nothing to do', function () {
-    // do nothing
-  });
-  
+  // do nothing
+});
