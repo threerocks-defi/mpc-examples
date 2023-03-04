@@ -27,19 +27,18 @@ contract WeightChangerFactory {
     uint256 private _nextControllerSalt;
     address private _lastCreatedPool;
 
-    IManagedPoolFactory.NewPoolParams private _managedPoolParams =
-        IManagedPoolFactory.NewPoolParams({
-            name: "TestManagedPool",
-            symbol: "TMP",
-            tokens: new IERC20[](2),
-            normalizedWeights: new uint256[](2),
-            assetManagers: new address[](2),
-            swapFeePercentage: 3e15,
-            swapEnabledOnStart: true,
-            mustAllowlistLPs: false,
-            managementAumFeePercentage: 1e15,
-            aumFeeId: 0
-        });
+    IManagedPoolFactory.NewPoolParams private _managedPoolParams = IManagedPoolFactory.NewPoolParams({
+        name: "TestManagedPool",
+        symbol: "TMP",
+        tokens: new IERC20[](2),
+        normalizedWeights: new uint256[](2),
+        assetManagers: new address[](2),
+        swapFeePercentage: 3e15,
+        swapEnabledOnStart: true,
+        mustAllowlistLPs: false,
+        managementAumFeePercentage: 1e15,
+        aumFeeId: 0
+    });
 
     event ControllerCreated(address indexed controller, IVault vault, bytes32 poolId);
 
@@ -50,8 +49,8 @@ contract WeightChangerFactory {
         // Set mananaged pool params
         _managedPoolParams.tokens[0] = new TestWETH(msg.sender);
         _managedPoolParams.tokens[1] = IERC20(address(new TestToken(msg.sender, "USDC", "USDC", 6)));
-        _managedPoolParams.normalizedWeights[0] = 70e16;
-        _managedPoolParams.normalizedWeights[1] = 30e16;
+        _managedPoolParams.normalizedWeights[0] = 30e16;
+        _managedPoolParams.normalizedWeights[1] = 70e16;
         _managedPoolParams.assetManagers[0] = address(0);
         _managedPoolParams.assetManagers[1] = address(1);
     }

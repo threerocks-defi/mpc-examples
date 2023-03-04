@@ -19,13 +19,15 @@ pragma solidity ^0.7.0;
 import "@balancer-labs/v2-interfaces/contracts/pool-utils/IManagedPool.sol";
 import "@balancer-labs/v2-interfaces/contracts/vault/IVault.sol";
 import "@balancer-labs/v2-interfaces/contracts/pool-utils/ILastCreatedPoolFactory.sol";
+import "@balancer-labs/v2-solidity-utils/contracts/math/FixedPoint.sol";
 
 contract WeightChanger {
+    using FixedPoint for uint256;
     // Assets WETH/USDC
     IERC20[] private _tokens;
 
     // Rebalance duration
-    uint256 private constant _REBALANCE_DURATION = 7 days;
+    uint256 private constant _REWEIGHT_DURATION = 7 days;
 
     // Minimum and maximum weight limits
     uint256 private constant _MIN_WEIGHT = 1e16; // 1%
@@ -42,6 +44,11 @@ contract WeightChanger {
         // Verify that this is a real Vault and the pool is registered - this call will revert if not.
         vault.getPool(poolId);
 
+        // Set the global tokens variable to
+        (IERC20[] memory tokens, , ) = vault.getPoolTokens(poolId);
+
+        _setTokens(tokens);
+
         _vault = vault;
         _poolId = poolId;
 
@@ -51,33 +58,22 @@ contract WeightChanger {
     function make5050() public {
         uint256[] memory fiftyFifty = new uint256[](2);
         fiftyFifty[0] = 50e16;
-        fiftyFifty[2] = 50e16;
-        _updateWeights(block.timestamp, block.timestamp + _REBALANCE_DURATION, _tokens, fiftyFifty);
+        fiftyFifty[1] = 50e16;
+        _updateWeights(block.timestamp, block.timestamp + _REWEIGHT_DURATION, _tokens, fiftyFifty);
     }
 
     function make8020() public {
         uint256[] memory eightyTwenty = new uint256[](2);
         eightyTwenty[0] = 80e16;
-        eightyTwenty[2] = 20e16;
-        _updateWeights(block.timestamp, block.timestamp + _REBALANCE_DURATION, _tokens, eightyTwenty);
+        eightyTwenty[1] = 20e16;
+        _updateWeights(block.timestamp, block.timestamp + _REWEIGHT_DURATION, _tokens, eightyTwenty);
     }
 
     function make9901() public {
         uint256[] memory nintynineOne = new uint256[](2);
         nintynineOne[0] = 99e16;
-        nintynineOne[2] = 1e16;
-        _updateWeights(block.timestamp, block.timestamp + _REBALANCE_DURATION, _tokens, nintynineOne);
-    }
-
-    // Returns the time until weights are updated
-    function _updateWeights(
-        uint256 startBlock,
-        uint256 endBlock,
-        IERC20[] memory tokens,
-        uint256[] memory weights
-    ) internal returns (uint256) {
-        _pool.updateWeightsGradually(startBlock, endBlock, tokens, weights);
-        return endBlock - startBlock;
+        nintynineOne[1] = 1e16;
+        _updateWeights(block.timestamp, block.timestamp + _REWEIGHT_DURATION, _tokens, nintynineOne);
     }
 
     // === Public Getters ===
@@ -91,6 +87,10 @@ contract WeightChanger {
 
     function getCurrentWeights() public view returns (uint256[] memory) {
         return _pool.getNormalizedWeights();
+    }
+
+    function getReweightDuration() public pure returns (uint256) {
+        return _REWEIGHT_DURATION;
     }
 
     function getPoolTokens() public view returns (IERC20[] memory) {
@@ -111,5 +111,41 @@ contract WeightChanger {
         // 12 byte logical shift left to remove the nonce and specialization setting. We don't need to mask,
         // since the logical shift already sets the upper bits to zero.
         return IManagedPool(address(uint256(poolId) >> (12 * 8)));
+    }
+
+    function _setTokens(IERC20[] memory tokens) internal {
+        // Start index at 1 to skip BPT
+        for (uint256 i = 1; i < tokens.length; i++) {
+            _tokens.push(tokens[i]);
+        }
+    }
+
+    // Returns the time until weights are updated
+    function _updateWeights(
+        uint256 startBlock,
+        uint256 endBlock,
+        IERC20[] memory tokens,
+        uint256[] memory weights
+    ) internal returns (uint256) {
+        _verifyWeights(weights);
+        _pool.updateWeightsGradually(startBlock, endBlock, tokens, weights);
+        return endBlock - startBlock;
+    }
+
+    function _verifyWeight(uint256 normalizedWeight) internal pure returns (uint256) {
+        require(normalizedWeight >= _MIN_WEIGHT, "Weight less than minimum requirement");
+        require(normalizedWeight <= _MAX_WEIGHT, "Weight greater than maximum requirement");
+        return normalizedWeight;
+    }
+
+    function _verifyWeights(uint256[] memory normalizedWeights) internal pure returns (uint256[] memory) {
+        uint256 normalizedSum = 0;
+        for (uint256 i = 0; i < normalizedWeights.length; i++) {
+            normalizedSum = normalizedSum.add(_verifyWeight(normalizedWeights[i]));
+        }
+
+        require(normalizedSum == FixedPoint.ONE, "Weights must sum to one");
+
+        return normalizedWeights;
     }
 }
