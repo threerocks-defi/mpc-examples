@@ -15,10 +15,10 @@
 pragma solidity ^0.7.0;
 
 // This contract shows an example of how a managed pool controller can modify a pools weight
-// gradual weight updates over 7 days for each change
+// Gradual weight updates over 7 days for each change
+import "@balancer-labs/v2-interfaces/contracts/pool-utils/ILastCreatedPoolFactory.sol";
 import "@balancer-labs/v2-interfaces/contracts/pool-utils/IManagedPool.sol";
 import "@balancer-labs/v2-interfaces/contracts/vault/IVault.sol";
-import "@balancer-labs/v2-interfaces/contracts/pool-utils/ILastCreatedPoolFactory.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/math/FixedPoint.sol";
 
 contract WeightChanger {
@@ -44,9 +44,8 @@ contract WeightChanger {
         // Verify that this is a real Vault and the pool is registered - this call will revert if not.
         vault.getPool(poolId);
 
-        // Set the global tokens variable to
+        // Set the global tokens variables
         (IERC20[] memory tokens, , ) = vault.getPoolTokens(poolId);
-
         _setTokens(tokens);
 
         _vault = vault;

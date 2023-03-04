@@ -6,11 +6,13 @@ pragma experimental ABIEncoderV2;
 // Core Infra
 import "./WeightChanger.sol";
 import "../interfaces/IManagedPoolFactory.sol";
-import "@balancer-labs/v2-interfaces/contracts/vault/IVault.sol";
+
 import "@balancer-labs/v2-interfaces/contracts/pool-utils/IManagedPool.sol";
+import "@balancer-labs/v2-interfaces/contracts/vault/IVault.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/Create2.sol";
-import { TestWETH } from "@orbcollective/shared-dependencies/contracts/TestWETH.sol";
+
 import { TestToken } from "@orbcollective/shared-dependencies/contracts/TestToken.sol";
+import { TestWETH } from "@orbcollective/shared-dependencies/contracts/TestWETH.sol";
 
 /**
  * @title WeightChangerFactory
@@ -27,18 +29,19 @@ contract WeightChangerFactory {
     uint256 private _nextControllerSalt;
     address private _lastCreatedPool;
 
-    IManagedPoolFactory.NewPoolParams private _managedPoolParams = IManagedPoolFactory.NewPoolParams({
-        name: "TestManagedPool",
-        symbol: "TMP",
-        tokens: new IERC20[](2),
-        normalizedWeights: new uint256[](2),
-        assetManagers: new address[](2),
-        swapFeePercentage: 3e15,
-        swapEnabledOnStart: true,
-        mustAllowlistLPs: false,
-        managementAumFeePercentage: 1e15,
-        aumFeeId: 0
-    });
+    IManagedPoolFactory.NewPoolParams private _managedPoolParams =
+        IManagedPoolFactory.NewPoolParams({
+            name: "TestManagedPool",
+            symbol: "TMP",
+            tokens: new IERC20[](2),
+            normalizedWeights: new uint256[](2),
+            assetManagers: new address[](2),
+            swapFeePercentage: 3e15,
+            swapEnabledOnStart: true,
+            mustAllowlistLPs: false,
+            managementAumFeePercentage: 1e15,
+            aumFeeId: 0
+        });
 
     event ControllerCreated(address indexed controller, IVault vault, bytes32 poolId);
 
