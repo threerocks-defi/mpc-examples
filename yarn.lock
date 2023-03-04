@@ -54,7 +54,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@balancer-labs/v2-deployments@npm:^3.0.0":
+"@balancer-labs/v2-deployments@npm:^3.0.0, @balancer-labs/v2-deployments@npm:^3.2.0":
   version: 3.2.0
   resolution: "@balancer-labs/v2-deployments@npm:3.2.0"
   peerDependencies:
@@ -1122,8 +1122,10 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@orbcollective/mpc-examples@workspace:pkg/mpc-examples"
   dependencies:
+    "@balancer-labs/v2-deployments": ^3.2.0
     "@nomiclabs/hardhat-ethers": ^2.2.1
     "@nomiclabs/hardhat-waffle": ^2.0.3
+    "@openzeppelin/contracts": 3.4.2-solc-0.7
     "@types/chai": ^4.3.3
     "@types/lodash": ^4.14.186
     "@types/mocha": ^10.0.0
@@ -5327,7 +5329,7 @@ __metadata:
   dependencies:
     bn.js: ^4.11.8
     ethereumjs-util: ^6.0.0
-  checksum: 03127d09960e5f8a44167463faf25b2894db2f746376dbb8195b789ed11762f93db9c574eaa7c498c400063508e9dfc1c80de2edf5f0e1406b25c87d860ff2f1
+  checksum: ae074be0bb012857ab5d3ae644d1163b908a48dd724b7d2567cfde309dc72222d460438f2411936a70dc949dc604ce1ef7118f7273bd525815579143c907e336
   languageName: node
   linkType: hard
 
