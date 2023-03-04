@@ -15,7 +15,7 @@
     "build": "yarn compile",
     "compile": "rm -rf artifacts/ cache/ && hardhat clean && hardhat compile",
     "compile:watch": "nodemon --ext sol --exec yarn compile",
-    "lint": "yarn prettier && yarn lint:solidity && yarn lint:typescript",
+    "lint": "yarn lint:solidity && yarn lint:typescript",
     "lint:solidity": "solhint --fix 'contracts/**/*.sol'",
     "lint:typescript": "eslint . --fix --ext .ts --ignore-path ../../.eslintignore  --max-warnings 0",
     "prettier": "prettier --write 'contracts/**/*.sol'",
@@ -40,7 +40,7 @@
     "eslint-plugin-prettier": "^4.2.1",
     "ethereum-waffle": "^3.4.4",
     "ethers": "^5.7.2",
-    "hardhat": "^2.12.2",
+    "hardhat": "^2.12.5",
     "hardhat-ignore-warnings": "^0.2.4",
     "lodash.frompairs": "^4.0.1",
     "lodash.pick": "^4.4.0",
@@ -57,7 +57,10 @@
     "typescript": "^4.0.2"
   },
   "dependencies": {
-    "@balancer-labs/balancer-js": "^2.0.0",
-    "@balancer-labs/v2-deployments": "^3.2.0"
+    "@balancer-labs/balancer-js": "^1.0.1",
+    "@balancer-labs/v2-deployments": "3.1.0",
+    "@balancer-labs/v2-interfaces": "^0.1.0",
+    "@balancer-labs/v2-pool-utils": "^3.1.2",
+    "@balancer-labs/v2-solidity-utils": "^3.0.1"
   }
 }
