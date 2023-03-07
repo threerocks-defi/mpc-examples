@@ -140,11 +140,11 @@ describe('NullController', function () {
       }
     });
 
-    it("Controller is logged in the factory", async () => {
+    it('Controller is logged in the factory', async () => {
       assert(await mpcFactory.isControllerFromFactory(localController.address));
     });
 
-    it("Controller at ZERO_ADDRESS is not logged in the factory", async () => {
+    it('Controller at ZERO_ADDRESS is not logged in the factory', async () => {
       assert(!(await mpcFactory.isControllerFromFactory(ZERO_ADDRESS)));
     });
   });
