@@ -3,12 +3,12 @@
 pragma solidity ^0.7.0;
 pragma experimental ABIEncoderV2;
 
-// Core Infra
-import "./NullController.sol";
-import "../interfaces/IManagedPoolFactory.sol";
-import "@balancer-labs/v2-interfaces/contracts/vault/IVault.sol";
 import "@balancer-labs/v2-interfaces/contracts/pool-utils/IManagedPool.sol";
+import "@balancer-labs/v2-interfaces/contracts/vault/IVault.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/Create2.sol";
+
+import "../interfaces/IManagedPoolFactory.sol";
+import "./NullController.sol";
 
 /**
  * @title NullControllerFactory
