@@ -52,46 +52,43 @@ contract NullControllerFactory {
     }
 
     function create(IManagedPoolFactory.NewPoolParams memory params) external {
-        if (!isDisabled) {
-            bytes32 controllerSalt = bytes32(_nextControllerSalt);
-            _nextControllerSalt += 1;
+        require(!isDisabled, "Factory is disabled");
 
-            bytes memory controllerCreationCode = abi.encodePacked(
-                type(NullController).creationCode,
-                abi.encode(balancerVault)
-            );
-            address expectedControllerAddress = Create2.computeAddress(
-                controllerSalt,
-                keccak256(controllerCreationCode)
-            );
+        bytes32 controllerSalt = bytes32(_nextControllerSalt);
+        _nextControllerSalt += 1;
 
-            // build arguments to deploy pool from factory
-            address[] memory assetManagers = new address[](params.tokens.length);
-            for (uint256 i = 0; i < assetManagers.length; i++) {
-                assetManagers[i] = expectedControllerAddress;
-            }
+        bytes memory controllerCreationCode = abi.encodePacked(
+            type(NullController).creationCode,
+            abi.encode(balancerVault)
+        );
+        address expectedControllerAddress = Create2.computeAddress(controllerSalt, keccak256(controllerCreationCode));
 
-            // TODO: instead of accepting the entirety of IManagedPoolFactory.NewPoolParams and
-            //       overwriting assetManagers and mustAllowlistLPs should we instead:
-            //          * extract all arguments and pass them individually?
-            //          * make a separate struct of the non-overwritten args, and use that to populate?
-            params.assetManagers = assetManagers;
-            params.mustAllowlistLPs = false;
-
-            IManagedPool pool = IManagedPool(
-                IManagedPoolFactory(managedPoolFactory).create(params, expectedControllerAddress)
-            );
-            _lastCreatedPool = address(pool);
-
-            address actualControllerAddress = Create2.deploy(0, controllerSalt, controllerCreationCode);
-            require(expectedControllerAddress == actualControllerAddress, "Deploy failed");
-
-            // log controller locally
-            isControllerFromFactory[actualControllerAddress] = true;
-
-            // log controller publicly
-            emit ControllerCreated(actualControllerAddress, pool.getPoolId());
+        // build arguments to deploy pool from factory
+        address[] memory assetManagers = new address[](params.tokens.length);
+        for (uint256 i = 0; i < assetManagers.length; i++) {
+            assetManagers[i] = expectedControllerAddress;
         }
+
+        // TODO: instead of accepting the entirety of IManagedPoolFactory.NewPoolParams and
+        //       overwriting assetManagers and mustAllowlistLPs should we instead:
+        //          * extract all arguments and pass them individually?
+        //          * make a separate struct of the non-overwritten args, and use that to populate?
+        params.assetManagers = assetManagers;
+        params.mustAllowlistLPs = false;
+
+        IManagedPool pool = IManagedPool(
+            IManagedPoolFactory(managedPoolFactory).create(params, expectedControllerAddress)
+        );
+        _lastCreatedPool = address(pool);
+
+        address actualControllerAddress = Create2.deploy(0, controllerSalt, controllerCreationCode);
+        require(expectedControllerAddress == actualControllerAddress, "Deploy failed");
+
+        // log controller locally
+        isControllerFromFactory[actualControllerAddress] = true;
+
+        // log controller publicly
+        emit ControllerCreated(actualControllerAddress, pool.getPoolId());
     }
 
     // TODO: access control
