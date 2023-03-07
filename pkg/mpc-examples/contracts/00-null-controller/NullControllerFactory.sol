@@ -18,8 +18,8 @@ import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/Create2.sol";
 contract NullControllerFactory {
     mapping(address => bool) public isControllerFromFactory;
 
-    address public managedPoolFactory;
-    IVault public balancerVault;
+    address public immutable managedPoolFactory;
+    IVault public immutable balancerVault;
     bool public isDisabled;
 
     uint256 private _nextControllerSalt;
