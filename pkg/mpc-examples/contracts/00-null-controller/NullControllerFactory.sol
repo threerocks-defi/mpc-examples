@@ -37,7 +37,7 @@ contract NullControllerFactory {
     uint256 private _nextControllerSalt;
     address private _lastCreatedPool;
 
-    event ControllerCreated(address indexed controller, IVault vault, bytes32 poolId);
+    event ControllerCreated(address indexed controller, bytes32 poolId);
 
     constructor(IVault vault, address factory) {
         balancerVault = vault;
@@ -90,7 +90,7 @@ contract NullControllerFactory {
             isControllerFromFactory[actualControllerAddress] = true;
 
             // log controller publicly
-            emit ControllerCreated(actualControllerAddress, balancerVault, pool.getPoolId());
+            emit ControllerCreated(actualControllerAddress, pool.getPoolId());
         }
     }
 
