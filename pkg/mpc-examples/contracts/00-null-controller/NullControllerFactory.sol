@@ -77,7 +77,6 @@ contract NullControllerFactory {
         );
         address expectedControllerAddress = Create2.computeAddress(controllerSalt, keccak256(controllerCreationCode));
 
-
         // build arguments to deploy pool from factory
         address[] memory assetManagers = new address[](minimalParams.tokens.length);
         for (uint256 i = 0; i < assetManagers.length; i++) {
