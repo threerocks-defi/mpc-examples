@@ -66,7 +66,8 @@ contract NullControllerFactory {
     }
 
     function create(MinimalPoolParams memory minimalParams) external {
-        require(!isDisabled, "Factory is disabled");
+        require(!isDisabled, "Controller factory disabled");
+        require(!IManagedPoolFactory(managedPoolFactory).isDisabled(), "Pool factory disabled");
 
         bytes32 controllerSalt = bytes32(_nextControllerSalt);
         _nextControllerSalt += 1;
