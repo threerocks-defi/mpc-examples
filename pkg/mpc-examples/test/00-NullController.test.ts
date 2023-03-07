@@ -37,10 +37,10 @@ async function deployController(deployer: SignerWithAddress): Promise<Contract> 
     symbol: 'MTP',
     tokens: tokenAddresses,
     normalizedWeights: initialWeights,
-    assetManagers: [ZERO_ADDRESS, ZERO_ADDRESS], // this will be overwritten in the MPC factory
+    // assetManagers: [ZERO_ADDRESS, ZERO_ADDRESS],
     swapFeePercentage: swapFeePercentage,
     swapEnabledOnStart: true,
-    mustAllowlistLPs: false, // this will be overwritten in the MPC factory
+    // mustAllowlistLPs: false,
     managementAumFeePercentage: fp(0.1),
     aumFeeId: 0,
   };
@@ -138,6 +138,14 @@ describe('NullController', function () {
         const info = await vault.getPoolTokenInfo(poolId, tokenAddresses[i]);
         assert.equal(info.assetManager, localController.address);
       }
+    });
+
+    it("Controller is logged in the factory", async () => {
+      assert(await mpcFactory.isControllerFromFactory(localController.address));
+    });
+
+    it("Controller at ZERO_ADDRESS is not logged in the factory", async () => {
+      assert(!(await mpcFactory.isControllerFromFactory(ZERO_ADDRESS)));
     });
   });
 });
