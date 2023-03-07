@@ -37,6 +37,20 @@ contract NullControllerFactory {
     uint256 private _nextControllerSalt;
     address private _lastCreatedPool;
 
+    // This struct is a subset of IManagedPoolFactory.NewPoolParams which omits arguments
+    // that this factory will override and are therefore unnecessary to provide. It will
+    // ultimately be used to populate IManagedPoolFactory.NewPoolParams.
+    struct MinimalPoolParams {
+        string name;
+        string symbol;
+        IERC20[] tokens;
+        uint256[] normalizedWeights;
+        uint256 swapFeePercentage;
+        bool swapEnabledOnStart;
+        uint256 managementAumFeePercentage;
+        uint256 aumFeeId;
+    }
+
     event ControllerCreated(address indexed controller, bytes32 poolId);
 
     constructor(IVault vault, address factory) {
@@ -51,7 +65,7 @@ contract NullControllerFactory {
         return _lastCreatedPool;
     }
 
-    function create(IManagedPoolFactory.NewPoolParams memory params) external {
+    function create(MinimalPoolParams memory minimalParams) external {
         require(!isDisabled, "Factory is disabled");
 
         bytes32 controllerSalt = bytes32(_nextControllerSalt);
@@ -63,21 +77,29 @@ contract NullControllerFactory {
         );
         address expectedControllerAddress = Create2.computeAddress(controllerSalt, keccak256(controllerCreationCode));
 
+
         // build arguments to deploy pool from factory
-        address[] memory assetManagers = new address[](params.tokens.length);
+        address[] memory assetManagers = new address[](minimalParams.tokens.length);
         for (uint256 i = 0; i < assetManagers.length; i++) {
             assetManagers[i] = expectedControllerAddress;
         }
 
-        // TODO: instead of accepting the entirety of IManagedPoolFactory.NewPoolParams and
-        //       overwriting assetManagers and mustAllowlistLPs should we instead:
-        //          * extract all arguments and pass them individually?
-        //          * make a separate struct of the non-overwritten args, and use that to populate?
-        params.assetManagers = assetManagers;
-        params.mustAllowlistLPs = false;
+        // Populate IManagedPoolFactory.NewPoolParams with arguments from MinimalPoolParams and
+        // other arguments that this factory overrides.
+        IManagedPoolFactory.NewPoolParams memory fullParams;
+        fullParams.name = minimalParams.name;
+        fullParams.symbol = minimalParams.symbol;
+        fullParams.tokens = minimalParams.tokens;
+        fullParams.normalizedWeights = minimalParams.normalizedWeights;
+        fullParams.assetManagers = assetManagers;
+        fullParams.swapFeePercentage = minimalParams.swapFeePercentage;
+        fullParams.swapEnabledOnStart = minimalParams.swapEnabledOnStart;
+        fullParams.mustAllowlistLPs = false;
+        fullParams.managementAumFeePercentage = minimalParams.managementAumFeePercentage;
+        fullParams.aumFeeId = minimalParams.aumFeeId;
 
         IManagedPool pool = IManagedPool(
-            IManagedPoolFactory(managedPoolFactory).create(params, expectedControllerAddress)
+            IManagedPoolFactory(managedPoolFactory).create(fullParams, expectedControllerAddress)
         );
         _lastCreatedPool = address(pool);
 
