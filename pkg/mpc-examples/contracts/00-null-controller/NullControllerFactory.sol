@@ -117,7 +117,7 @@ contract NullControllerFactory is Ownable {
         emit ControllerCreated(actualControllerAddress, pool.getPoolId());
     }
 
-    function disable() external onlyOwner{
+    function disable() external onlyOwner {
         isDisabled = true;
         emit Disabled();
     }
