@@ -32,6 +32,21 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@balancer-labs/balancer-js@npm:^1.0.1":
+  version: 1.0.1
+  resolution: "@balancer-labs/balancer-js@npm:1.0.1"
+  dependencies:
+    "@ethersproject/abi": ^5.4.0
+    "@ethersproject/abstract-signer": ^5.4.0
+    "@ethersproject/address": ^5.4.0
+    "@ethersproject/bignumber": ^5.4.0
+    "@ethersproject/bytes": ^5.4.0
+    "@ethersproject/constants": ^5.4.0
+    "@ethersproject/contracts": ^5.4.0
+  checksum: b459bdfb0bc11ea9008473ecbe710885c75056797db5c986c84587892f3aa29ba260458a03c16250452a203ccfd126489bbde982db39b9deffe62ae3ab3683bd
+  languageName: node
+  linkType: hard
+
 "@balancer-labs/typechain@npm:^1.0.0":
   version: 1.0.0
   resolution: "@balancer-labs/typechain@npm:1.0.0"
@@ -42,6 +57,16 @@ __metadata:
     "@ethersproject/providers": ^5.4.0
     ethers: ^5.4.1
   checksum: 1d7ad1fecca7edb7a46d45b0efceb3b1f1f973ba505e2f487852b45fa9f9a1b3a8f56c1a87a5819e3e07b3495c2381782006615e12e7db0a62ea0131677639db
+  languageName: node
+  linkType: hard
+
+"@balancer-labs/v2-deployments@npm:3.1.0":
+  version: 3.1.0
+  resolution: "@balancer-labs/v2-deployments@npm:3.1.0"
+  peerDependencies:
+    "@ethersproject/contracts": ^5.0.0
+    hardhat: ^2.8.3
+  checksum: 7a0b1a1409257e8394854d307fbb16d81872ecedbcde6cb3cb5c8a3437ff7a61d6620aa7b90c1d68f99856444289abb01b7c6e75b128d44ce134346fee8f7184
   languageName: node
   linkType: hard
 
@@ -69,7 +94,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@balancer-labs/v2-solidity-utils@npm:^3.0.2":
+"@balancer-labs/v2-pool-utils@npm:^3.1.2":
+  version: 3.1.2
+  resolution: "@balancer-labs/v2-pool-utils@npm:3.1.2"
+  dependencies:
+    "@balancer-labs/v2-interfaces": 0.3.0
+    "@balancer-labs/v2-solidity-utils": 3.0.2
+  checksum: da23901370d4fa714c307c6f1529c31a728abba572365e5205370dad01cd8f10e64eb2874a88aa8f7c98c8e25025ae0139ee72757b8e858fd1dd22a268cbb1e9
+  languageName: node
+  linkType: hard
+
+"@balancer-labs/v2-solidity-utils@npm:3.0.2, @balancer-labs/v2-solidity-utils@npm:^3.0.1, @balancer-labs/v2-solidity-utils@npm:^3.0.2":
   version: 3.0.2
   resolution: "@balancer-labs/v2-solidity-utils@npm:3.0.2"
   dependencies:
@@ -335,7 +370,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ethersproject/contracts@npm:5.7.0":
+"@ethersproject/contracts@npm:5.7.0, @ethersproject/contracts@npm:^5.4.0":
   version: 5.7.0
   resolution: "@ethersproject/contracts@npm:5.7.0"
   dependencies:
@@ -1085,8 +1120,14 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@orbcollective/mpc-examples@workspace:pkg/mpc-examples"
   dependencies:
+    "@balancer-labs/balancer-js": ^1.0.1
+    "@balancer-labs/v2-deployments": 3.1.0
+    "@balancer-labs/v2-interfaces": ^0.1.0
+    "@balancer-labs/v2-pool-utils": ^3.1.2
+    "@balancer-labs/v2-solidity-utils": ^3.0.1
     "@nomiclabs/hardhat-ethers": ^2.2.1
     "@nomiclabs/hardhat-waffle": ^2.0.3
+    "@openzeppelin/contracts": 3.4.2-solc-0.7
     "@types/chai": ^4.3.3
     "@types/lodash": ^4.14.186
     "@types/mocha": ^10.0.0
@@ -1100,7 +1141,7 @@ __metadata:
     eslint-plugin-prettier: ^4.2.1
     ethereum-waffle: ^3.4.4
     ethers: ^5.7.2
-    hardhat: ^2.12.2
+    hardhat: ^2.12.5
     hardhat-ignore-warnings: ^0.2.4
     lodash.frompairs: ^4.0.1
     lodash.pick: ^4.4.0
@@ -6316,7 +6357,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"hardhat@npm:^2.12.2, hardhat@npm:^2.4.1":
+"hardhat@npm:^2.12.5, hardhat@npm:^2.4.1":
   version: 2.13.0
   resolution: "hardhat@npm:2.13.0"
   dependencies:
