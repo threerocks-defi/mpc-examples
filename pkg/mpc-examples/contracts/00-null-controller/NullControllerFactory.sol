@@ -18,6 +18,7 @@ pragma experimental ABIEncoderV2;
 import "@balancer-labs/v2-interfaces/contracts/pool-utils/IManagedPool.sol";
 import "@balancer-labs/v2-interfaces/contracts/vault/IVault.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/Create2.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 import "../interfaces/IManagedPoolFactory.sol";
 import "./NullController.sol";
@@ -27,7 +28,7 @@ import "./NullController.sol";
  * @notice Factory for a Managed Pool and NullController.
  * @dev Determines controller deployment address, deploys pool (w/ controller address as argument), then controller.
  */
-contract NullControllerFactory {
+contract NullControllerFactory is Ownable {
     mapping(address => bool) public isControllerFromFactory;
 
     address public immutable managedPoolFactory;
@@ -52,6 +53,7 @@ contract NullControllerFactory {
     }
 
     event ControllerCreated(address indexed controller, bytes32 poolId);
+    event Disabled();
 
     constructor(IVault vault, address factory) {
         balancerVault = vault;
@@ -115,8 +117,8 @@ contract NullControllerFactory {
         emit ControllerCreated(actualControllerAddress, pool.getPoolId());
     }
 
-    // TODO: access control
-    function disable() external {
+    function disable() external onlyOwner{
         isDisabled = true;
+        emit Disabled();
     }
 }
