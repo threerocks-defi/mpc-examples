@@ -111,10 +111,10 @@ contract NullControllerFactory is Ownable {
         address actualControllerAddress = Create2.deploy(0, controllerSalt, controllerCreationCode);
         require(expectedControllerAddress == actualControllerAddress, "Deploy failed");
 
-        // log controller locally
+        // Log controller locally.
         isControllerFromFactory[actualControllerAddress] = true;
 
-        // log controller publicly
+        // Log controller publicly.
         emit ControllerCreated(actualControllerAddress, pool.getPoolId());
     }
 
