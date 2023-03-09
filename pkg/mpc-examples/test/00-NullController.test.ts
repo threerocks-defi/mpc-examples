@@ -1,4 +1,4 @@
-import { assert /* expect */ } from 'chai';
+import { assert, expect } from 'chai';
 import { ethers } from 'hardhat';
 import { bn, fp } from '@orbcollective/shared-dependencies/numbers';
 import { Contract } from '@ethersproject/contracts';
@@ -12,7 +12,7 @@ import { toNormalizedWeights } from '@balancer-labs/balancer-js';
 
 export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
-let deployer: SignerWithAddress;
+let deployer: SignerWithAddress, rando: SignerWithAddress;
 let mpcFactory: Contract;
 let tokenAddresses: string[];
 
@@ -92,8 +92,9 @@ describe('NullController', function () {
 
   before('Setup', async () => {
     /* eslint-disable @typescript-eslint/no-unused-vars */
-    let trader, liquidityProvider;
-    ({ vault, tokens, deployer, trader, liquidityProvider } = await setupEnvironment());
+    let trader;
+    ({ vault, tokens, deployer, trader } = await setupEnvironment());
+    rando = trader;
 
     const pfpArgs = [vault.address, fp(0.1), fp(0.1)];
     const protocolFeesProvider = await deployBalancerContract(
@@ -124,8 +125,7 @@ describe('NullController', function () {
   describe('Controller Deployment', () => {
     let localController: Contract;
     beforeEach('deploy', async () => {
-      const args = [vault.address];
-      localController = await deployController(deployer, args);
+      localController = await deployController(deployer);
     });
 
     it("Local Controller's Vault is the Vault", async () => {
@@ -146,6 +146,18 @@ describe('NullController', function () {
 
     it('Controller at ZERO_ADDRESS is not logged in the factory', async () => {
       assert(!(await mpcFactory.isControllerFromFactory(ZERO_ADDRESS)));
+    });
+  });
+
+  describe('Factory Access Control', () => {
+    it('Non-owner cannot disable the factory', async () => {
+      await expect(mpcFactory.connect(rando).disable()).to.be.revertedWith('Ownable: caller is not the owner');
+    });
+
+    it('Owner can disable the factory', async () => {
+      const localController = await deployController(deployer);
+      await mpcFactory.connect(deployer).disable();
+      await expect(deployController(deployer)).to.be.revertedWith('Controller factory disabled');
     });
   });
 });
