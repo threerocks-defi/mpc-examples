@@ -68,6 +68,9 @@ contract NullControllerFactory is Ownable {
         return _lastCreatedPool;
     }
 
+    /**
+     * @dev Deploy a Managed Pool and a Controller.
+     */
     function create(MinimalPoolParams memory minimalParams) external {
         require(!isDisabled, "Controller factory disabled");
         require(!IManagedPoolFactory(managedPoolFactory).isDisabled(), "Pool factory disabled");
@@ -118,6 +121,12 @@ contract NullControllerFactory is Ownable {
         emit ControllerCreated(actualControllerAddress, pool.getPoolId());
     }
 
+    /**
+     * @dev Allow the owner to disable the factory, preventing future deployments.
+     * @notice owner is initially the factory deployer, but this role can be transferred.
+     * @dev The onlyOwner access control paradigm is an example. Any access control can
+     * be implemented to allow for different needs.
+     */
     function disable() external onlyOwner {
         isDisabled = true;
         emit Disabled();
