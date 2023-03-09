@@ -91,8 +91,7 @@ describe('NullController', function () {
   let tokens: TokenList;
 
   before('Setup', async () => {
-    /* eslint-disable @typescript-eslint/no-unused-vars */
-    let trader;
+    let trader: SignerWithAddress;
     ({ vault, tokens, deployer, trader } = await setupEnvironment());
     rando = trader;
 
