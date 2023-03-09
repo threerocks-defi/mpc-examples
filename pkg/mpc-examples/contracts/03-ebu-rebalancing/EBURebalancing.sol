@@ -32,6 +32,8 @@ contract EBURebalancing {
     uint256 private constant _REBALANCE_DURATION = 7 days;
     uint256 private _lastRebalanceCall;
 
+    event PoolRebalancing(uint256 indexed startBlock, uint256 endBlock);
+
     constructor(IVault vault) {
         // Get poolId from the factory
         bytes32 poolId = IManagedPool(ILastCreatedPoolFactory(msg.sender).getLastCreatedPool()).getPoolId();
@@ -61,13 +63,15 @@ contract EBURebalancing {
         }
 
         // Updates swap fee from 100% to 0.01%
-        _pool.updateSwapFeeGradually(block.timestamp, block.timestamp + _REBALANCE_DURATION, FixedPoint.ONE, 1e14);
+        _pool.updateSwapFeeGradually(block.timestamp, block.timestamp + _REBALANCE_DURATION, 3e15, 1e14);
 
         _lastRebalanceCall = block.timestamp;
+
+        emit PoolRebalancing(_lastRebalanceCall, _lastRebalanceCall + _REBALANCE_DURATION);
     }
 
     function pausePool() public {
-        require(_lastRebalanceCall + _REBALANCE_DURATION >= block.timestamp, "Pool is still rebalancing");
+        require(_lastRebalanceCall + _REBALANCE_DURATION < block.timestamp, "Pool is still rebalancing");
         require(!isPoolPaused(), "Swaps are already paused");
         _pool.setSwapEnabled(false);
         // Check if the pool is rebalancing if true revert

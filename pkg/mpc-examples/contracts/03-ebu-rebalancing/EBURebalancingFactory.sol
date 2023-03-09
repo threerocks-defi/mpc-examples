@@ -21,8 +21,9 @@ import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/Create2.sol";
 
 import "../interfaces/IManagedPoolFactory.sol";
 import "./EBURebalancing.sol";
-import "@orbcollective/shared-dependencies/contracts/TestWETH.sol";
-import "@orbcollective/shared-dependencies/contracts/TestToken.sol";
+
+import { TestToken } from "@orbcollective/shared-dependencies/contracts/TestToken.sol";
+import { TestWETH } from "@orbcollective/shared-dependencies/contracts/TestWETH.sol";
 
 /**
  * @title EBURebalancingFactory
@@ -39,18 +40,19 @@ contract EBURebalancingFactory {
     uint256 private _nextControllerSalt;
     address private _lastCreatedPool;
 
-    IManagedPoolFactory.NewPoolParams private _managedPoolParams = IManagedPoolFactory.NewPoolParams({
-        name: "TestManagedPool",
-        symbol: "TMP",
-        tokens: new IERC20[](3),
-        normalizedWeights: new uint256[](3),
-        assetManagers: new address[](3),
-        swapFeePercentage: 3e15,
-        swapEnabledOnStart: true,
-        mustAllowlistLPs: false,
-        managementAumFeePercentage: 1e15,
-        aumFeeId: 0
-    });
+    IManagedPoolFactory.NewPoolParams private _managedPoolParams =
+        IManagedPoolFactory.NewPoolParams({
+            name: "TestManagedPool",
+            symbol: "TMP",
+            tokens: new IERC20[](3),
+            normalizedWeights: new uint256[](3),
+            assetManagers: new address[](3),
+            swapFeePercentage: 3e15,
+            swapEnabledOnStart: true,
+            mustAllowlistLPs: false,
+            managementAumFeePercentage: 1e15,
+            aumFeeId: 0
+        });
 
     event ControllerCreated(address indexed controller, bytes32 poolId);
 
@@ -60,14 +62,14 @@ contract EBURebalancingFactory {
 
         // Set managed pool params
         _managedPoolParams.tokens[0] = new TestWETH(msg.sender);
-        _managedPoolParams.tokens[1] = IERC20(address(new TestToken(msg.sender, "WBTC", "WBTC", 8)));
         _managedPoolParams.tokens[2] = IERC20(address(new TestToken(msg.sender, "USDC", "USDC", 6)));
-        _managedPoolParams.normalizedWeights[0] = 33e16;
-        _managedPoolParams.normalizedWeights[1] = 33e16;
-        _managedPoolParams.normalizedWeights[2] = 33e16;
+        _managedPoolParams.tokens[1] = IERC20(address(new TestToken(msg.sender, "WBTC", "WBTC", 8)));
+        _managedPoolParams.normalizedWeights[0] = 3334e14;
+        _managedPoolParams.normalizedWeights[1] = 3333e14;
+        _managedPoolParams.normalizedWeights[2] = 3333e14;
         _managedPoolParams.assetManagers[0] = address(0);
-        _managedPoolParams.assetManagers[1] = address(1);
-        _managedPoolParams.assetManagers[1] = address(2);
+        _managedPoolParams.assetManagers[1] = address(0);
+        _managedPoolParams.assetManagers[2] = address(0);
     }
 
     /**
@@ -77,7 +79,7 @@ contract EBURebalancingFactory {
         return _lastCreatedPool;
     }
 
-    function create(MinimalPoolParams memory minimalParams) external {
+    function create() external {
         require(!isDisabled, "Factory is disabled");
 
         bytes32 controllerSalt = bytes32(_nextControllerSalt);
@@ -90,10 +92,13 @@ contract EBURebalancingFactory {
         address expectedControllerAddress = Create2.computeAddress(controllerSalt, keccak256(controllerCreationCode));
 
         // build arguments to deploy pool from factory
-        address[] memory assetManagers = new address[](minimalParams.tokens.length);
+        address[] memory assetManagers = new address[](_managedPoolParams.tokens.length);
         for (uint256 i = 0; i < assetManagers.length; i++) {
             assetManagers[i] = expectedControllerAddress;
         }
+
+        _managedPoolParams.assetManagers = assetManagers;
+        _managedPoolParams.mustAllowlistLPs = false;
 
         IManagedPool pool = IManagedPool(
             IManagedPoolFactory(managedPoolFactory).create(_managedPoolParams, expectedControllerAddress)
