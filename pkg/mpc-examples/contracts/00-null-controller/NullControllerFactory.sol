@@ -94,7 +94,7 @@ contract NullControllerFactory is Ownable {
         fullParams.symbol = minimalParams.symbol;
         fullParams.tokens = minimalParams.tokens;
         fullParams.normalizedWeights = minimalParams.normalizedWeights;
-        // Asset Managers set to the controller address, not known by deployer until creation
+        // Asset Managers set to the controller address, not known by deployer until creation.
         fullParams.assetManagers = assetManagers;
         fullParams.swapFeePercentage = minimalParams.swapFeePercentage;
         fullParams.swapEnabledOnStart = minimalParams.swapEnabledOnStart;
