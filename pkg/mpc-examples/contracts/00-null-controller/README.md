@@ -8,7 +8,7 @@ NullController is a Managed Pool Controller that has no ability to issue command
 The following list is a list of permissioned functions in a Managed Pool that a controller could potentially call. Only the checked boxes are functions that _this_ controller is able to call:
 
 - Gradual Updates
-	- [x] `pool.updateSwapFeeGradually(...)`
+	- [ ] `pool.updateSwapFeeGradually(...)`
 	- [ ] `pool.updateWeightsGradually(...)`
 - Enable/Disable Interactions
 	- [ ] `pool.setSwapEnabled(...)`
