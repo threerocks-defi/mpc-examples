@@ -154,7 +154,7 @@ describe('NullController', function () {
     });
 
     it('Owner can disable the factory', async () => {
-      const localController = await deployController(deployer);
+      await deployController(deployer);
       await mpcFactory.connect(deployer).disable();
       await expect(deployController(deployer)).to.be.revertedWith('Controller factory disabled');
     });
