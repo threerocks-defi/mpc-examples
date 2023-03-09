@@ -98,7 +98,7 @@ contract NullControllerFactory is Ownable {
         fullParams.assetManagers = assetManagers;
         fullParams.swapFeePercentage = minimalParams.swapFeePercentage;
         fullParams.swapEnabledOnStart = minimalParams.swapEnabledOnStart;
-        // Factory enforces public LPs for MPs with NullController
+        // Factory enforces public LPs for MPs with NullController.
         fullParams.mustAllowlistLPs = false;
         fullParams.managementAumFeePercentage = minimalParams.managementAumFeePercentage;
         fullParams.aumFeeId = minimalParams.aumFeeId;
