@@ -49,7 +49,7 @@ async function deployController(deployer: SignerWithAddress): Promise<Contract> 
     const receipt = await (await mpcFactory.connect(deployer).create(newPoolParams)).wait();
     const eventController = expectEvent.inReceipt(receipt, 'ControllerCreated');
 
-    return ethers.getContractAt('EBURebalancing', eventController.args.controller);
+    return ethers.getContractAt('EBURebalancer', eventController.args.controller);
 }
 
 async function fastForward(sec: number) {
@@ -85,7 +85,7 @@ async function deployLocalContract(contract: string, deployer: SignerWithAddress
     return instance;
 }
 
-describe('EBURebalancing', () => {
+describe('EBURebalancer', () => {
     let vault: Contract;
     let tokens: TokenList;
 
@@ -115,7 +115,7 @@ describe('EBURebalancing', () => {
         );
 
         const controllerFactoryArgs = [vault.address, mpFactory.address];
-        mpcFactory = await deployLocalContract('EBURebalancingFactory', deployer, controllerFactoryArgs);
+        mpcFactory = await deployLocalContract('EBURebalancerFactory', deployer, controllerFactoryArgs);
     });
 
     describe('Controller Deployment', () => {

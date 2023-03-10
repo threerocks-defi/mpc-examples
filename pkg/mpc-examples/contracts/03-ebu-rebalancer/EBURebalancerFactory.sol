@@ -20,16 +20,16 @@ import "@balancer-labs/v2-interfaces/contracts/vault/IVault.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/Create2.sol";
 
 import "../interfaces/IManagedPoolFactory.sol";
-import "./EBURebalancing.sol";
+import "./EBURebalancer.sol";
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
- * @title EBURebalancingFactory
- * @notice Factory for a Managed Pool and EBURebalancing Controller.
+ * @title EBURebalancerFactory
+ * @notice Factory for a Managed Pool and EBURebalancer Controller.
  * @dev Determines controller deployment address, deploys pool (w/ controller address as argument), then controller.
  */
-contract EBURebalancingFactory is Ownable {
+contract EBURebalancerFactory is Ownable {
     mapping(address => bool) public isControllerFromFactory;
 
     address public immutable managedPoolFactory;
@@ -76,7 +76,7 @@ contract EBURebalancingFactory is Ownable {
         _nextControllerSalt += 1;
 
         bytes memory controllerCreationCode = abi.encodePacked(
-            type(EBURebalancing).creationCode,
+            type(EBURebalancer).creationCode,
             abi.encode(balancerVault)
         );
         address expectedControllerAddress = Create2.computeAddress(controllerSalt, keccak256(controllerCreationCode));
@@ -98,7 +98,7 @@ contract EBURebalancingFactory is Ownable {
         fullParams.assetManagers = assetManagers;
         fullParams.swapFeePercentage = minimalParams.swapFeePercentage;
         fullParams.swapEnabledOnStart = minimalParams.swapEnabledOnStart;
-        // Factory enforces public LPs for MPs with NullController.
+        // Factory enforces public LPs for MPs with EBURebalancer.
         fullParams.mustAllowlistLPs = false;
         fullParams.managementAumFeePercentage = minimalParams.managementAumFeePercentage;
         fullParams.aumFeeId = minimalParams.aumFeeId;

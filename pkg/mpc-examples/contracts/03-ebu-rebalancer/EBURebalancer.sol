@@ -19,7 +19,7 @@ import "@balancer-labs/v2-interfaces/contracts/pool-utils/ILastCreatedPoolFactor
 import "@balancer-labs/v2-interfaces/contracts/pool-utils/IManagedPool.sol";
 import "@balancer-labs/v2-interfaces/contracts/vault/IVault.sol";
 
-contract EBURebalancing {
+contract EBURebalancer {
     IVault private immutable _vault;
     bytes32 private immutable _poolId;
     IERC20[] private _tokens;
