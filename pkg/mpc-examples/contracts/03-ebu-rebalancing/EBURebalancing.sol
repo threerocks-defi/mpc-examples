@@ -15,19 +15,16 @@
 pragma solidity ^0.7.0;
 pragma experimental ABIEncoderV2;
 
-// Swaps are nominally disabled
 import "@balancer-labs/v2-interfaces/contracts/pool-utils/ILastCreatedPoolFactory.sol";
 import "@balancer-labs/v2-interfaces/contracts/pool-utils/IManagedPool.sol";
 import "@balancer-labs/v2-interfaces/contracts/vault/IVault.sol";
-import "@balancer-labs/v2-solidity-utils/contracts/math/FixedPoint.sol";
 
 contract EBURebalancing {
-    using FixedPoint for uint256;
     IVault private immutable _vault;
     bytes32 private immutable _poolId;
-    // Assets WETH/WBTC/USDC
     IERC20[] private _tokens;
     IManagedPool private immutable _pool;
+
     uint256 private constant _MINIMUM_DURATION_BETWEEN_REBALANCE = 30 days;
     uint256 private constant _REBALANCE_DURATION = 7 days;
     uint256 private _lastRebalanceCall;
@@ -74,11 +71,8 @@ contract EBURebalancing {
         require(_lastRebalanceCall + _REBALANCE_DURATION < block.timestamp, "Pool is still rebalancing");
         require(!isPoolPaused(), "Swaps are already paused");
         _pool.setSwapEnabled(false);
-        // Check if the pool is rebalancing if true revert
     }
 
-    // Get trading status function
-    // - returns boolean if swaps are paused or not
     function isPoolPaused() public view returns (bool) {
         return !_pool.getSwapEnabled();
     }

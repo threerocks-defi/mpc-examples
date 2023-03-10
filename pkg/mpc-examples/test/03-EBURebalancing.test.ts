@@ -1,21 +1,24 @@
 import { assert, expect } from 'chai';
 import { ethers } from 'hardhat';
-import { fp } from '@orbcollective/shared-dependencies/numbers';
+import { bn, fp } from '@orbcollective/shared-dependencies/numbers';
 import { Contract } from '@ethersproject/contracts';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address';
 import { getBalancerContractArtifact } from '@balancer-labs/v2-deployments';
-import { getBalancerContractArtifact } from '@balancer-labs/v2-deployments';
 import * as expectEvent from '@orbcollective/shared-dependencies/expectEvent';
 import * as time from '@orbcollective/shared-dependencies/time';
-import { setupEnvironment } from '@orbcollective/shared-dependencies';
+import { setupEnvironment, TokenList, pickTokenAddresses } from '@orbcollective/shared-dependencies';
 import { toNormalizedWeights } from '@balancer-labs/balancer-js';
-import { BigNumber } from 'ethers';
 
 export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 let deployer: SignerWithAddress;
 let mpcFactory: Contract;
 let ebuRebalancer: Contract;
+let tokenAddresses: string[];
+
+
+const initialWeights = toNormalizedWeights([fp(33.34), fp(33.33), fp(33.33)]);
+const swapFeePercentage = bn(0.3e16);
 
 async function deployBalancerContract(
     task: string,
@@ -30,7 +33,20 @@ async function deployBalancerContract(
 }
 
 async function deployController(deployer: SignerWithAddress): Promise<Contract> {
-    const receipt = await (await mpcFactory.connect(deployer).create()).wait();
+    const newPoolParams = {
+        name: 'MyTestPool',
+        symbol: 'MTP',
+        tokens: tokenAddresses,
+        normalizedWeights: initialWeights,
+        // assetManagers: [ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS],
+        swapFeePercentage: swapFeePercentage,
+        swapEnabledOnStart: true,
+        // mustAllowlistLPs: false,
+        managementAumFeePercentage: fp(0.1),
+        aumFeeId: 0,
+    };
+
+    const receipt = await (await mpcFactory.connect(deployer).create(newPoolParams)).wait();
     const eventController = expectEvent.inReceipt(receipt, 'ControllerCreated');
 
     return ethers.getContractAt('EBURebalancing', eventController.args.controller);
@@ -71,9 +87,10 @@ async function deployLocalContract(contract: string, deployer: SignerWithAddress
 
 describe('EBURebalancing', () => {
     let vault: Contract;
+    let tokens: TokenList;
 
     before('Setup', async () => {
-        ({ vault, deployer } = await setupEnvironment());
+        ({ vault, tokens, deployer } = await setupEnvironment());
 
         const pfpArgs = [vault.address, fp(0.1), fp(0.1)];
         const protocolFeesProvider = await deployBalancerContract(
@@ -82,6 +99,8 @@ describe('EBURebalancing', () => {
             deployer,
             pfpArgs
         );
+
+        tokenAddresses = pickTokenAddresses(tokens, 3);
 
         const factoryTask = 'deprecated/20221021-managed-pool';
         const libNames = ['CircuitBreakerLib', 'ManagedPoolAddRemoveTokenLib'];

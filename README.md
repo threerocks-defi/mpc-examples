@@ -5,7 +5,12 @@
 [![CI Status](https://github.com/orbcollective/mpc-examples/workflows/CI/badge.svg)](https://github.com/orbcollective/mpc-examples/actions)
 [![License](https://img.shields.io/badge/License-GPLv3-green.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
-This repository contains simplified examples of possible functionality in a Managed Pool Controller 
+This repository contains simplified examples of possible functionality in a Managed Pool Controller. These controllers are provided as examples for informational purposes only and have not been audited.
+
+# Controllers
+| Number | Controller      | Description |
+| ----------- | ----------- | ----------- |
+| 00 | [NullController](./pkg/mpc-examples/contracts/00-null-controller/README.md) | Empty controller that does nothing |
 
 ## Build and Test
 

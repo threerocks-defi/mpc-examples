@@ -40,4 +40,9 @@ interface IManagedPoolFactory {
      * @dev Return the address of the most recently created pool.
      */
     function getLastCreatedPool() external view returns (address);
+
+    /**
+     * @dev Check whether the derived factory has been disabled.
+     */
+    function isDisabled() external view returns (bool);
 }
