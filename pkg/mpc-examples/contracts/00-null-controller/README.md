@@ -15,7 +15,7 @@ The controller itself does not implement any access control because it can take 
 - Timelocked manager control and a guardian with the ability to veto
 
 ### NullControllerFactory
-The factory has one permissioned function: `disable()`. Using OZ's Ownable, the factory restricts permission only the contract `owner`. Ownable was chosen as it is a very simple concept that requires little explanation; however, it may be desirable to grant this permission to more than a single `owner`. Using a solution such as Balancer's [SingletonAuthentication](https://github.com/balancer/balancer-v2-monorepo/blob/3e99500640449585e8da20d50687376bcf70462f/pkg/solidity-utils/contracts/helpers/SingletonAuthentication.sol) could be a useful system for many controller factories.
+The factory has one permissioned function: `disable()`. Using OZ's Ownable, the factory restricts permission to only the contract `owner`. Ownable was chosen as it is a very simple concept that requires little explanation; however, it may be desirable to grant this permission to more than a single `owner`. Using a solution such as Balancer's [SingletonAuthentication](https://github.com/balancer/balancer-v2-monorepo/blob/3e99500640449585e8da20d50687376bcf70462f/pkg/solidity-utils/contracts/helpers/SingletonAuthentication.sol) could be a useful system for many controller factories.
 
 ## Managed Pool Functions
 The following list is a list of permissioned functions in a Managed Pool that a controller could potentially call. The NullController can call the functions below that are denoted with a checked box:
