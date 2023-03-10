@@ -23,10 +23,8 @@ import "@balancer-labs/v2-solidity-utils/contracts/math/FixedPoint.sol";
 
 contract WeightChanger {
     using FixedPoint for uint256;
-    // Assets WETH/USDC
     IERC20[] private _tokens;
 
-    // Rebalance duration
     uint256 private constant _REWEIGHT_DURATION = 7 days;
 
     // Minimum and maximum weight limits
