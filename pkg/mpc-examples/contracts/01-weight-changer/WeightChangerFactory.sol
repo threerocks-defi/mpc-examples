@@ -11,6 +11,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 import "./WeightChanger.sol";
 import "../interfaces/IManagedPoolFactory.sol";
+
 /**
  * @title WeightChangerFactory
  * @notice Factory for a Managed Pool and Weight Changer Controller.
@@ -85,7 +86,7 @@ contract WeightChangerFactory is Ownable {
         fullParams.assetManagers = assetManagers;
         fullParams.swapFeePercentage = minimalParams.swapFeePercentage;
         fullParams.swapEnabledOnStart = minimalParams.swapEnabledOnStart;
-        // Factory enforces public LPs for MPs with NullController.
+        // Factory enforces public LPs for MPs with WeightChanger.
         fullParams.mustAllowlistLPs = false;
         fullParams.managementAumFeePercentage = minimalParams.managementAumFeePercentage;
         fullParams.aumFeeId = minimalParams.aumFeeId;
