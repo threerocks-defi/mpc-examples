@@ -133,7 +133,7 @@ describe('NullController', function () {
 
     it('Deploys managed pool; controller set as AM for all tokens', async () => {
       const poolId = await localController.getPoolId();
-      for (let i = 0;i < tokenAddresses.length;i++) {
+      for (let i = 0; i < tokenAddresses.length; i++) {
         const info = await vault.getPoolTokenInfo(poolId, tokenAddresses[i]);
         assert.equal(info.assetManager, localController.address);
       }
