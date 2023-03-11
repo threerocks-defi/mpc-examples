@@ -1,13 +1,13 @@
 import { assert } from 'chai';
 import { ethers } from 'hardhat';
-import { bn, fp } from "@orbcollective/shared-dependencies/numbers";
+import { bn, fp } from '@orbcollective/shared-dependencies/numbers';
 import { Contract } from '@ethersproject/contracts';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address';
 import { getBalancerContractArtifact } from '@balancer-labs/v2-deployments';
 import { getBalancerContractArtifact } from '@balancer-labs/v2-deployments';
 import * as expectEvent from '@orbcollective/shared-dependencies/expectEvent';
 import * as time from '@orbcollective/shared-dependencies/time';
-import { pickTokenAddresses, setupEnvironment, TokenList } from "@orbcollective/shared-dependencies";
+import { pickTokenAddresses, setupEnvironment, TokenList } from '@orbcollective/shared-dependencies';
 import { toNormalizedWeights } from '@balancer-labs/balancer-js';
 import { BigNumber } from 'ethers';
 
@@ -102,7 +102,6 @@ describe('WeightChanger', () => {
     );
 
     tokenAddresses = pickTokenAddresses(tokens, 2);
-
 
     const factoryTask = 'deprecated/20221021-managed-pool';
     const libNames = ['CircuitBreakerLib', 'ManagedPoolAddRemoveTokenLib'];
