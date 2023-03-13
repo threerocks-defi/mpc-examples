@@ -18,11 +18,11 @@ pragma experimental ABIEncoderV2;
 import "@balancer-labs/v2-interfaces/contracts/pool-utils/ILastCreatedPoolFactory.sol";
 import "@balancer-labs/v2-interfaces/contracts/pool-utils/IManagedPool.sol";
 import "@balancer-labs/v2-interfaces/contracts/vault/IVault.sol";
+import "@balancer-labs/v2-pool-utils/contracts/lib/ComposablePoolLib.sol";
 
 contract EBURebalancer {
     IVault private immutable _vault;
     bytes32 private immutable _poolId;
-    IERC20[] private _tokens;
     IManagedPool private immutable _pool;
 
     uint256 private constant _MINIMUM_DURATION_BETWEEN_REBALANCE = 30 days;
@@ -37,10 +37,6 @@ contract EBURebalancer {
 
         // Verify that this is a real Vault and the pool is registered - this call will revert if not.
         vault.getPool(poolId);
-
-        // Set the global tokens variables
-        (IERC20[] memory tokens, , ) = vault.getPoolTokens(poolId);
-        _setTokens(tokens);
 
         // Store Vault and poolId
         _vault = vault;
@@ -87,7 +83,7 @@ contract EBURebalancer {
 
     function getPoolTokens() public view returns (IERC20[] memory) {
         (IERC20[] memory tokens, , ) = _vault.getPoolTokens(_poolId);
-        return tokens;
+        return ComposablePoolLib.dropBptFromTokens(tokens);
     }
 
     /// === Private and Internal ===
@@ -97,10 +93,4 @@ contract EBURebalancer {
         return IManagedPool(address(uint256(poolId) >> (12 * 8)));
     }
 
-    function _setTokens(IERC20[] memory tokens) internal {
-        // Start index at 1 to skip BPT
-        for (uint256 i = 1; i < tokens.length; i++) {
-            _tokens.push(tokens[i]);
-        }
-    }
 }

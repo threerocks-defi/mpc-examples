@@ -129,8 +129,7 @@ describe('EBURebalancer', () => {
       const poolId = await ebuRebalancer.getPoolId();
       const tokens = await ebuRebalancer.getPoolTokens();
 
-      // Start index at 1 to skip BPT
-      for (let i = 1; i < tokens.length; i++) {
+      for (let i = 0; i < tokens.length; i++) {
         const info = await vault.getPoolTokenInfo(poolId, tokens[i]);
         assert.equal(info.assetManager, ebuRebalancer.address);
       }
