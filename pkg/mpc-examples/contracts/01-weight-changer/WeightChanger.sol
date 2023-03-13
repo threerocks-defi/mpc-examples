@@ -20,6 +20,7 @@ import "@balancer-labs/v2-interfaces/contracts/pool-utils/ILastCreatedPoolFactor
 import "@balancer-labs/v2-interfaces/contracts/pool-utils/IManagedPool.sol";
 import "@balancer-labs/v2-interfaces/contracts/vault/IVault.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/math/FixedPoint.sol";
+import "@balancer-labs/v2-pool-utils/contracts/lib/ComposablePoolLib.sol";
 
 contract WeightChanger {
     using FixedPoint for uint256;
@@ -90,9 +91,8 @@ contract WeightChanger {
         return _REWEIGHT_DURATION;
     }
 
-    function getPoolTokens() public view returns (IERC20[] memory) {
-        (IERC20[] memory tokens, , ) = _vault.getPoolTokens(_poolId);
-        return tokens;
+    function getTokens() public view returns (IERC20[] memory) {
+        return _tokens;
     }
 
     function getPoolId() public view returns (bytes32) {
@@ -111,10 +111,7 @@ contract WeightChanger {
     }
 
     function _setTokens(IERC20[] memory tokens) internal {
-        // Start index at 1 to skip BPT
-        for (uint256 i = 1; i < tokens.length; i++) {
-            _tokens.push(tokens[i]);
-        }
+        _tokens = ComposablePoolLib.dropBptFromTokens(tokens);
     }
 
     // Returns the time until weights are updated

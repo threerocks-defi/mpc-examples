@@ -130,10 +130,10 @@ describe('WeightChanger', () => {
 
     it('Deploys managed pool; controller set as AM for all tokens', async () => {
       const poolId = await weightChanger.getPoolId();
-      const tokens = await weightChanger.getPoolTokens();
+      const tokens = await weightChanger.getTokens();
 
       // Start index at 1 to skip BPT
-      for (let i = 1; i < tokens.length; i++) {
+      for (let i = 0; i < tokens.length; i++) {
         const info = await vault.getPoolTokenInfo(poolId, tokens[i]);
         assert.equal(info.assetManager, weightChanger.address);
       }
@@ -209,7 +209,7 @@ describe('WeightChanger', () => {
   });
 
   async function checkTokenWeights(_tokenWeights: BigNumber[], _desiredWeights: BigNumber[]): Promise<boolean> {
-    const tokenCount = (await weightChanger.getPoolTokens()).length - 1;
+    const tokenCount = (await weightChanger.getTokens()).length;
     let correctWeights = 0;
 
     for (let i = 0; i < tokenCount; i++) {
