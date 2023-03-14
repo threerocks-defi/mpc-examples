@@ -92,5 +92,4 @@ contract EBURebalancer {
         // since the logical shift already sets the upper bits to zero.
         return IManagedPool(address(uint256(poolId) >> (12 * 8)));
     }
-
 }
