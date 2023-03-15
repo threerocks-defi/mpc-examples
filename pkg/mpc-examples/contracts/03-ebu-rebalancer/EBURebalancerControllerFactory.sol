@@ -34,7 +34,7 @@ contract EBURebalancerControllerFactory is Ownable {
 
     address public immutable managedPoolFactory;
     IVault public immutable balancerVault;
-    bool public isDisabled;
+    bool private _disabled;
 
     uint256 private _nextControllerSalt;
     address private _lastCreatedPool;
@@ -68,8 +68,7 @@ contract EBURebalancerControllerFactory is Ownable {
     }
 
     function create(MinimalPoolParams memory minimalParams) external {
-        require(!isDisabled, "Controller factory disabled");
-        require(!IManagedPoolFactory(managedPoolFactory).isDisabled(), "Pool factory disabled");
+        _ensureEnabled();
 
         bytes32 controllerSalt = bytes32(_nextControllerSalt);
         _nextControllerSalt += 1;
@@ -124,7 +123,17 @@ contract EBURebalancerControllerFactory is Ownable {
      * be implemented to allow for different needs.
      */
     function disable() external onlyOwner {
-        isDisabled = true;
+        _ensureEnabled();
+        _disabled = true;
         emit Disabled();
+    }
+
+    function isDisabled() public view returns (bool) {
+        return _disabled;
+    }
+
+    function _ensureEnabled() internal view {
+        require(!isDisabled(), "Controller factory disabled");
+        require(!IManagedPoolFactory(managedPoolFactory).isDisabled(), "Pool factory disabled");
     }
 }
