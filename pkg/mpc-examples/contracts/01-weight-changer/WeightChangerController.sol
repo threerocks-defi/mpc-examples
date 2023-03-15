@@ -22,7 +22,9 @@ import "@balancer-labs/v2-interfaces/contracts/vault/IVault.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/math/FixedPoint.sol";
 import "@balancer-labs/v2-pool-utils/contracts/lib/ComposablePoolLib.sol";
 
-contract WeightChanger {
+// solhint-disable not-rely-on-time
+
+contract WeightChangerController {
     using FixedPoint for uint256;
     IERC20[] private _tokens;
 
@@ -34,7 +36,6 @@ contract WeightChanger {
 
     IVault private immutable _vault;
     bytes32 private immutable _poolId;
-    IManagedPool private immutable _pool;
 
     constructor(IVault vault) {
         // Get poolId from the factory
@@ -49,8 +50,6 @@ contract WeightChanger {
 
         _vault = vault;
         _poolId = poolId;
-
-        _pool = _getPoolFromId(poolId);
     }
 
     function make5050() public {
@@ -116,13 +115,13 @@ contract WeightChanger {
 
     // Returns the time until weights are updated
     function _updateWeights(
-        uint256 startBlock,
-        uint256 endBlock,
+        uint256 startTime,
+        uint256 endTime,
         IERC20[] memory tokens,
         uint256[] memory weights
     ) internal returns (uint256) {
         _verifyWeights(weights);
-        _pool.updateWeightsGradually(startBlock, endBlock, tokens, weights);
+        _pool.updateWeightsGradually(startTime, endTime, tokens, weights);
         return endBlock - startBlock;
     }
 

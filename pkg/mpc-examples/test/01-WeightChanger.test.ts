@@ -15,7 +15,7 @@ export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 let deployer: SignerWithAddress;
 let mpcFactory: Contract;
-let weightChanger: Contract;
+let weightChangerController: Contract;
 let tokenAddresses: string[];
 
 const initialWeights = toNormalizedWeights([fp(30), fp(70)]);
@@ -86,7 +86,7 @@ async function deployLocalContract(contract: string, deployer: SignerWithAddress
   return instance;
 }
 
-describe('WeightChanger', () => {
+describe('WeightChangerController', () => {
   let vault: Contract;
   let tokens: TokenList;
 
@@ -116,35 +116,34 @@ describe('WeightChanger', () => {
     );
 
     const controllerFactoryArgs = [vault.address, mpFactory.address];
-    mpcFactory = await deployLocalContract('WeightChangerFactory', deployer, controllerFactoryArgs);
+    mpcFactory = await deployLocalContract('weightChangerControllerFactory', deployer, controllerFactoryArgs);
   });
 
   describe('Controller Deployment', () => {
     beforeEach('deploy', async () => {
-      weightChanger = await deployController(deployer);
+      weightChangerController = await deployController(deployer);
     });
 
     it("Local Controller's Vault is the Vault", async () => {
-      assert.equal(vault.address, await weightChanger.getVault());
+      assert.equal(vault.address, await weightChangerController.getVault());
     });
 
     it('Deploys managed pool; controller set as AM for all tokens', async () => {
-      const poolId = await weightChanger.getPoolId();
-      const tokens = await weightChanger.getTokens();
+      const poolId = await weightChangerController.getPoolId();
+      const tokens = await weightChangerController.getTokens();
 
-      // Start index at 1 to skip BPT
       for (let i = 0; i < tokens.length; i++) {
         const info = await vault.getPoolTokenInfo(poolId, tokens[i]);
-        assert.equal(info.assetManager, weightChanger.address);
+        assert.equal(info.assetManager, weightChangerController.address);
       }
     });
 
     it('Initial weights are set 30/70', async () => {
-      assert.isTrue(await checkTokenWeights(await weightChanger.getCurrentWeights(), initialWeights));
+      assert.isTrue(await checkTokenWeights(await weightChangerController.getCurrentWeights(), initialWeights));
     });
 
     it('Reweight duration set at 7 days', async () => {
-      assert.equal(await weightChanger.getReweightDuration(), time.WEEK);
+      assert.equal(await weightChangerController.getReweightDuration(), time.WEEK);
     });
   });
 
@@ -154,18 +153,18 @@ describe('WeightChanger', () => {
       let desiredWeights: BigNumber[];
       beforeEach('call make5050 function', async () => {
         desiredWeights = toNormalizedWeights([fp(50), fp(50)]);
-        weightChanger = await deployController(deployer);
-        await weightChanger.make5050();
+        weightChangerController = await deployController(deployer);
+        await weightChangerController.make5050();
       });
 
       it('Failure after 4 days', async () => {
         await fastForward(time.DAY * 4);
-        assert.isNotTrue(await checkTokenWeights(await weightChanger.getCurrentWeights(), desiredWeights));
+        assert.isNotTrue(await checkTokenWeights(await weightChangerController.getCurrentWeights(), desiredWeights));
       });
 
       it('Successful after 8 days', async () => {
         await fastForward(time.DAY * 8);
-        assert.isTrue(await checkTokenWeights(await weightChanger.getCurrentWeights(), desiredWeights));
+        assert.isTrue(await checkTokenWeights(await weightChangerController.getCurrentWeights(), desiredWeights));
       });
     });
 
@@ -173,18 +172,18 @@ describe('WeightChanger', () => {
       let desiredWeights: BigNumber[];
       beforeEach('call make8020 function', async () => {
         desiredWeights = toNormalizedWeights([fp(80), fp(20)]);
-        weightChanger = await deployController(deployer);
-        await weightChanger.make8020();
+        weightChangerController = await deployController(deployer);
+        await weightChangerController.make8020();
       });
 
       it('Failure after 4 days', async () => {
         await fastForward(time.DAY * 4);
-        assert.isNotTrue(await checkTokenWeights(await weightChanger.getCurrentWeights(), desiredWeights));
+        assert.isNotTrue(await checkTokenWeights(await weightChangerController.getCurrentWeights(), desiredWeights));
       });
 
       it('Successful after 8 days', async () => {
         await fastForward(time.DAY * 8);
-        assert.isTrue(await checkTokenWeights(await weightChanger.getCurrentWeights(), desiredWeights));
+        assert.isTrue(await checkTokenWeights(await weightChangerController.getCurrentWeights(), desiredWeights));
       });
     });
 
@@ -192,24 +191,24 @@ describe('WeightChanger', () => {
       let desiredWeights: BigNumber[];
       beforeEach('call make9901 function', async () => {
         desiredWeights = toNormalizedWeights([fp(99), fp(1)]);
-        weightChanger = await deployController(deployer);
-        await weightChanger.make9901();
+        weightChangerController = await deployController(deployer);
+        await weightChangerController.make9901();
       });
 
       it('Failure after 4 days', async () => {
         await fastForward(time.DAY * 4);
-        assert.isNotTrue(await checkTokenWeights(await weightChanger.getCurrentWeights(), desiredWeights));
+        assert.isNotTrue(await checkTokenWeights(await weightChangerController.getCurrentWeights(), desiredWeights));
       });
 
       it('Successful after 8 days', async () => {
         await fastForward(time.DAY * 8);
-        assert.isTrue(await checkTokenWeights(await weightChanger.getCurrentWeights(), desiredWeights));
+        assert.isTrue(await checkTokenWeights(await weightChangerController.getCurrentWeights(), desiredWeights));
       });
     });
   });
 
   async function checkTokenWeights(_tokenWeights: BigNumber[], _desiredWeights: BigNumber[]): Promise<boolean> {
-    const tokenCount = (await weightChanger.getTokens()).length;
+    const tokenCount = (await weightChangerController.getTokens()).length;
     let correctWeights = 0;
 
     for (let i = 0; i < tokenCount; i++) {
@@ -217,6 +216,6 @@ describe('WeightChanger', () => {
         correctWeights += 1;
       }
     }
-    return correctWeights == tokenCount ? true : false;
+    return correctWeights == tokenCount;
   }
 });

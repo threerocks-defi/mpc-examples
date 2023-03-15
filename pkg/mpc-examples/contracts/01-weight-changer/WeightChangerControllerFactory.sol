@@ -9,15 +9,15 @@ import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/Create2.sol";
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-import "./WeightChanger.sol";
+import "./WeightChangerController.sol";
 import "../interfaces/IManagedPoolFactory.sol";
 
 /**
- * @title WeightChangerFactory
+ * @title WeightChangerControllerFactory
  * @notice Factory for a Managed Pool and Weight Changer Controller.
  * @dev Determines controller deployment address, deploys pool (w/ controller address as argument), then controller.
  */
-contract WeightChangerFactory is Ownable {
+contract WeightChangerControllerFactory is Ownable {
     mapping(address => bool) public isControllerFromFactory;
 
     address public managedPoolFactory;
@@ -63,7 +63,7 @@ contract WeightChangerFactory is Ownable {
         _nextControllerSalt += 1;
 
         bytes memory controllerCreationCode = abi.encodePacked(
-            type(WeightChanger).creationCode,
+            type(WeightChangerController).creationCode,
             abi.encode(balancerVault)
         );
         address expectedControllerAddress = Create2.computeAddress(controllerSalt, keccak256(controllerCreationCode));
