@@ -12,11 +12,11 @@ export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 let deployer: SignerWithAddress;
 let mpcFactory: Contract;
-let ebuRebalancer: Contract;
+let ebuRebalancerController: Contract;
 let tokenAddresses: string[];
 
 const initialWeights = toNormalizedWeights([fp(33.34), fp(33.33), fp(33.33)]);
-const swapFeePercentage = bn(0.3e16);
+const minSwapFeePercentage = bn(1e12); // 0.0001%
 
 async function deployBalancerContract(
   task: string,
@@ -37,8 +37,8 @@ async function deployController(deployer: SignerWithAddress): Promise<Contract> 
     tokens: tokenAddresses,
     normalizedWeights: initialWeights,
     // assetManagers: [ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS],
-    swapFeePercentage: swapFeePercentage,
-    swapEnabledOnStart: true,
+    minSwapFeePercentage: minSwapFeePercentage,
+    // swapEnabledOnStart: false,
     // mustAllowlistLPs: false,
     managementAumFeePercentage: fp(0.1),
     aumFeeId: 0,
@@ -47,7 +47,7 @@ async function deployController(deployer: SignerWithAddress): Promise<Contract> 
   const receipt = await (await mpcFactory.connect(deployer).create(newPoolParams)).wait();
   const eventController = expectEvent.inReceipt(receipt, 'ControllerCreated');
 
-  return ethers.getContractAt('EBURebalancer', eventController.args.controller);
+  return ethers.getContractAt('EBURebalancerController', eventController.args.controller);
 }
 
 async function fastForward(sec: number) {
@@ -83,7 +83,7 @@ async function deployLocalContract(contract: string, deployer: SignerWithAddress
   return instance;
 }
 
-describe('EBURebalancer', () => {
+describe('EBURebalancerController', () => {
   let vault: Contract;
   let tokens: TokenList;
 
@@ -113,25 +113,25 @@ describe('EBURebalancer', () => {
     );
 
     const controllerFactoryArgs = [vault.address, mpFactory.address];
-    mpcFactory = await deployLocalContract('EBURebalancerFactory', deployer, controllerFactoryArgs);
+    mpcFactory = await deployLocalContract('EBURebalancerControllerFactory', deployer, controllerFactoryArgs);
   });
 
   describe('Controller Deployment', () => {
     beforeEach('deploy', async () => {
-      ebuRebalancer = await deployController(deployer);
+      ebuRebalancerController = await deployController(deployer);
     });
 
     it("Local Controller's Vault is the Vault", async () => {
-      assert.equal(vault.address, await ebuRebalancer.getVault());
+      assert.equal(vault.address, await ebuRebalancerController.getVault());
     });
 
     it('Deploys managed pool; controller set as AM for all tokens', async () => {
-      const poolId = await ebuRebalancer.getPoolId();
-      const tokens = await ebuRebalancer.getPoolTokens();
+      const poolId = await ebuRebalancerController.getPoolId();
+      const tokens = await ebuRebalancerController.getPoolTokens();
 
       for (let i = 0; i < tokens.length; i++) {
         const info = await vault.getPoolTokenInfo(poolId, tokens[i]);
-        assert.equal(info.assetManager, ebuRebalancer.address);
+        assert.equal(info.assetManager, ebuRebalancerController.address);
       }
     });
   });
@@ -139,36 +139,36 @@ describe('EBURebalancer', () => {
   describe('Rebalance Pool', () => {
     beforeEach('Call rebalance', async () => {
       await fastForward(2678400);
-      await ebuRebalancer.rebalancePool();
+      await ebuRebalancerController.rebalancePool();
     });
 
     it('pause swaps successfully', async () => {
-      // fast forward time 7 days and pause swaps
+      // fast-forward time 7 days and pause swaps
       await fastForward(605002);
-      await ebuRebalancer.pausePool();
+      await ebuRebalancerController.pausePool();
 
-      assert.equal(await ebuRebalancer.isPoolPaused(), true);
+      assert.equal(await ebuRebalancerController.isPoolPaused(), true);
     });
 
     it('Fail to pause swaps during rebalancing', async () => {
-      await expect(ebuRebalancer.pausePool()).to.be.revertedWith('Pool is still rebalancing');
+      await expect(ebuRebalancerController.pausePool()).to.be.revertedWith('Pool is still rebalancing');
     });
 
     it('Fail to call rebalance 4 days after initial rebalance', async () => {
       await fastForward(345600);
-      await expect(ebuRebalancer.rebalancePool()).to.be.revertedWith('Minimum time between calls not met');
+      await expect(ebuRebalancerController.rebalancePool()).to.be.revertedWith('Minimum time between calls not met');
     });
 
     it('Successfully call rebalance 31 days after original rebalance', async () => {
       await fastForward(2678400);
-      const receipt = await (await ebuRebalancer.rebalancePool()).wait();
+      const receipt = await (await ebuRebalancerController.rebalancePool()).wait();
       await expectEvent.inReceipt(receipt, 'PoolRebalancing');
     });
 
     it('successfully pause swaps then rebalance', async () => {
       await fastForward(2678400);
-      await ebuRebalancer.pausePool();
-      const receipt = await (await ebuRebalancer.rebalancePool()).wait();
+      await ebuRebalancerController.pausePool();
+      const receipt = await (await ebuRebalancerController.rebalancePool()).wait();
       await expectEvent.inReceipt(receipt, 'PoolRebalancing');
     });
   });

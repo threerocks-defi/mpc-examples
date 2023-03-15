@@ -20,16 +20,16 @@ import "@balancer-labs/v2-interfaces/contracts/vault/IVault.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/Create2.sol";
 
 import "../interfaces/IManagedPoolFactory.sol";
-import "./EBURebalancer.sol";
+import "./EBURebalancerController.sol";
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
- * @title EBURebalancerFactory
+ * @title EBURebalancerControllerFactory
  * @notice Factory for a Managed Pool and EBURebalancer Controller.
  * @dev Determines controller deployment address, deploys pool (w/ controller address as argument), then controller.
  */
-contract EBURebalancerFactory is Ownable {
+contract EBURebalancerControllerFactory is Ownable {
     mapping(address => bool) public isControllerFromFactory;
 
     address public immutable managedPoolFactory;
@@ -47,8 +47,7 @@ contract EBURebalancerFactory is Ownable {
         string symbol;
         IERC20[] tokens;
         uint256[] normalizedWeights;
-        uint256 swapFeePercentage;
-        bool swapEnabledOnStart;
+        uint256 minSwapFeePercentage;
         uint256 managementAumFeePercentage;
         uint256 aumFeeId;
     }
@@ -76,8 +75,8 @@ contract EBURebalancerFactory is Ownable {
         _nextControllerSalt += 1;
 
         bytes memory controllerCreationCode = abi.encodePacked(
-            type(EBURebalancer).creationCode,
-            abi.encode(balancerVault)
+            type(EBURebalancerController).creationCode,
+            abi.encode(balancerVault, minimalParams.minSwapFeePercentage)
         );
         address expectedControllerAddress = Create2.computeAddress(controllerSalt, keccak256(controllerCreationCode));
 
@@ -96,9 +95,9 @@ contract EBURebalancerFactory is Ownable {
         fullParams.normalizedWeights = minimalParams.normalizedWeights;
         // Asset Managers set to the controller address, not known by deployer until creation.
         fullParams.assetManagers = assetManagers;
-        fullParams.swapFeePercentage = minimalParams.swapFeePercentage;
-        fullParams.swapEnabledOnStart = minimalParams.swapEnabledOnStart;
-        // Factory enforces public LPs for MPs with EBURebalancer.
+        fullParams.swapFeePercentage = minimalParams.minSwapFeePercentage;
+        fullParams.swapEnabledOnStart = false;
+        // Factory enforces public LPs for MPs with EBURebalancerController.
         fullParams.mustAllowlistLPs = false;
         fullParams.managementAumFeePercentage = minimalParams.managementAumFeePercentage;
         fullParams.aumFeeId = minimalParams.aumFeeId;

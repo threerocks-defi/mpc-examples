@@ -20,18 +20,22 @@ import "@balancer-labs/v2-interfaces/contracts/pool-utils/IManagedPool.sol";
 import "@balancer-labs/v2-interfaces/contracts/vault/IVault.sol";
 import "@balancer-labs/v2-pool-utils/contracts/lib/ComposablePoolLib.sol";
 
-contract EBURebalancer {
+// solhint-disable not-rely-on-time
+
+contract EBURebalancerController {
     IVault private immutable _vault;
     bytes32 private immutable _poolId;
     IManagedPool private immutable _pool;
 
     uint256 private constant _MINIMUM_DURATION_BETWEEN_REBALANCE = 30 days;
     uint256 private constant _REBALANCE_DURATION = 7 days;
+    uint256 private constant _MAX_SWAP_FEE_PERCENTAGE = 95e16; // 95%
+    uint256 private immutable _minSwapFeePercentage;
     uint256 private _lastRebalanceCall;
 
-    event PoolRebalancing(uint256 indexed startBlock, uint256 endBlock);
+    event PoolRebalancing(uint256 indexed startTime, uint256 endTime);
 
-    constructor(IVault vault) {
+    constructor(IVault vault, uint256 minSwapFeePercentage) {
         // Get poolId from the factory
         bytes32 poolId = IManagedPool(ILastCreatedPoolFactory(msg.sender).getLastCreatedPool()).getPoolId();
 
@@ -43,6 +47,8 @@ contract EBURebalancer {
         _poolId = poolId;
 
         _pool = _getPoolFromId(poolId);
+
+        _minSwapFeePercentage = minSwapFeePercentage;
     }
 
     function rebalancePool() public {
@@ -56,7 +62,12 @@ contract EBURebalancer {
         }
 
         // Updates swap fee from 100% to 0.01%
-        _pool.updateSwapFeeGradually(block.timestamp, block.timestamp + _REBALANCE_DURATION, 3e15, 1e14);
+        _pool.updateSwapFeeGradually(
+            block.timestamp,
+            block.timestamp + _REBALANCE_DURATION,
+            _MAX_SWAP_FEE_PERCENTAGE,
+            _minSwapFeePercentage
+        );
 
         _lastRebalanceCall = block.timestamp;
 
@@ -64,7 +75,7 @@ contract EBURebalancer {
     }
 
     function pausePool() public {
-        require(_lastRebalanceCall + _REBALANCE_DURATION < block.timestamp, "Pool is still rebalancing");
+        require(block.timestamp >= _lastRebalanceCall + _REBALANCE_DURATION, "Pool is still rebalancing");
         require(!isPoolPaused(), "Swaps are already paused");
         _pool.setSwapEnabled(false);
     }
