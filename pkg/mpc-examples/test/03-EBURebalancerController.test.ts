@@ -89,8 +89,8 @@ describe('EBURebalancerController', () => {
   let tokens: TokenList;
 
   before('Setup', async () => {
+    let trader: SignerWithAddress;
     ({ vault, tokens, deployer, trader } = await setupEnvironment());
-
     rando = trader;
 
     const pfpArgs = [vault.address, fp(0.1), fp(0.1)];
@@ -157,7 +157,7 @@ describe('EBURebalancerController', () => {
       await expect(ebuRebalancerController.pausePool()).to.be.revertedWith('Pool is still rebalancing');
     });
 
-    it('Fail to call rebalance 4 days after initial rebalance', async () => {
+    it('Fail to call rebalance, until the 30th day in which the call will be successful', async () => {
       await fastForward(345600);
       await expect(ebuRebalancerController.rebalancePool()).to.be.revertedWith('Minimum time between calls not met');
     });

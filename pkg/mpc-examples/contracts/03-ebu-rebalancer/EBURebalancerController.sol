@@ -101,7 +101,7 @@ contract EBURebalancerController {
         return IManagedPool(address(uint256(poolId) >> (12 * 8)));
     }
 
-    function _getPool() internal pure returns (IManagedPool) {
+    function _getPool() internal view returns (IManagedPool) {
         return _getPoolFromId(getPoolId());
     }
 }
