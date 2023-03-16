@@ -1,7 +1,7 @@
 # WeightChangerController
 
 ## Summary
-WeightChangerController is a Managed Pool Controller that has the ability to pause swaps as well as promote rebalancing through the gradual lowering of swap fees. 
+WeightChangerController is a Managed Pool Controller that has the ability update token weights. 
 
 ## Details
 The WeightChangerController allows users update the weights of a Managed Pool's tokens over the course of 7 days.

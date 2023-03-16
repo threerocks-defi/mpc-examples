@@ -56,21 +56,21 @@ contract WeightChangerController {
         uint256[] memory fiftyFifty = new uint256[](2);
         fiftyFifty[0] = 50e16;
         fiftyFifty[1] = 50e16;
-        _updateWeights(block.timestamp, block.timestamp + _REWEIGHT_DURATION, _tokens, fiftyFifty);
+        _updateWeights(block.timestamp, block.timestamp + _REWEIGHT_DURATION, _getTokens(), fiftyFifty);
     }
 
     function make8020() public {
         uint256[] memory eightyTwenty = new uint256[](2);
         eightyTwenty[0] = 80e16;
         eightyTwenty[1] = 20e16;
-        _updateWeights(block.timestamp, block.timestamp + _REWEIGHT_DURATION, _tokens, eightyTwenty);
+        _updateWeights(block.timestamp, block.timestamp + _REWEIGHT_DURATION, _getTokens(), eightyTwenty);
     }
 
     function make9901() public {
         uint256[] memory nintynineOne = new uint256[](2);
         nintynineOne[0] = 99e16;
         nintynineOne[1] = 1e16;
-        _updateWeights(block.timestamp, block.timestamp + _REWEIGHT_DURATION, _tokens, nintynineOne);
+        _updateWeights(block.timestamp, block.timestamp + _REWEIGHT_DURATION, _getTokens(), nintynineOne);
     }
 
     // === Public Getters ===
