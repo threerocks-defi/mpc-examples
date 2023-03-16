@@ -11,6 +11,7 @@ import { toNormalizedWeights } from '@balancer-labs/balancer-js';
 export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 let deployer: SignerWithAddress;
+let rando: SignerWithAddress;
 let mpcFactory: Contract;
 let ebuRebalancerController: Contract;
 let tokenAddresses: string[];
@@ -88,7 +89,9 @@ describe('EBURebalancerController', () => {
   let tokens: TokenList;
 
   before('Setup', async () => {
-    ({ vault, tokens, deployer } = await setupEnvironment());
+    ({ vault, tokens, deployer, trader } = await setupEnvironment());
+
+    rando = trader;
 
     const pfpArgs = [vault.address, fp(0.1), fp(0.1)];
     const protocolFeesProvider = await deployBalancerContract(
@@ -170,6 +173,18 @@ describe('EBURebalancerController', () => {
       await ebuRebalancerController.pausePool();
       const receipt = await (await ebuRebalancerController.rebalancePool()).wait();
       await expectEvent.inReceipt(receipt, 'PoolRebalancing');
+    });
+  });
+
+  describe('Factory Access Control', () => {
+    it('Non-owner cannot disable the factory', async () => {
+      await expect(mpcFactory.connect(rando).disable()).to.be.revertedWith('Ownable: caller is not the owner');
+    });
+
+    it('Owner can disable the factory', async () => {
+      await deployController(deployer);
+      await mpcFactory.connect(deployer).disable();
+      await expect(deployController(deployer)).to.be.revertedWith('Controller factory disabled');
     });
   });
 });
