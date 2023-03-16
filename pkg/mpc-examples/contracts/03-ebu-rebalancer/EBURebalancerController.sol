@@ -25,7 +25,6 @@ import "@balancer-labs/v2-pool-utils/contracts/lib/ComposablePoolLib.sol";
 contract EBURebalancerController {
     IVault private immutable _vault;
     bytes32 private immutable _poolId;
-    IManagedPool private immutable _pool;
 
     uint256 private constant _MINIMUM_DURATION_BETWEEN_REBALANCE = 30 days;
     uint256 private constant _REBALANCE_DURATION = 7 days;
@@ -46,8 +45,6 @@ contract EBURebalancerController {
         _vault = vault;
         _poolId = poolId;
 
-        _pool = _getPoolFromId(poolId);
-
         _minSwapFeePercentage = minSwapFeePercentage;
     }
 
@@ -58,11 +55,11 @@ contract EBURebalancerController {
         );
 
         if (isPoolPaused()) {
-            _pool.setSwapEnabled(true);
+            _getPool().setSwapEnabled(true);
         }
 
         // Updates swap fee from 100% to 0.01%
-        _pool.updateSwapFeeGradually(
+        _getPool().updateSwapFeeGradually(
             block.timestamp,
             block.timestamp + _REBALANCE_DURATION,
             _MAX_SWAP_FEE_PERCENTAGE,
@@ -77,11 +74,11 @@ contract EBURebalancerController {
     function pausePool() public {
         require(block.timestamp >= _lastRebalanceCall + _REBALANCE_DURATION, "Pool is still rebalancing");
         require(!isPoolPaused(), "Swaps are already paused");
-        _pool.setSwapEnabled(false);
+        _getPool().setSwapEnabled(false);
     }
 
     function isPoolPaused() public view returns (bool) {
-        return !_pool.getSwapEnabled();
+        return !_getPool().getSwapEnabled();
     }
 
     function getPoolId() public view returns (bytes32) {
@@ -102,5 +99,9 @@ contract EBURebalancerController {
         // 12 byte logical shift left to remove the nonce and specialization setting. We don't need to mask,
         // since the logical shift already sets the upper bits to zero.
         return IManagedPool(address(uint256(poolId) >> (12 * 8)));
+    }
+
+    function _getPool() internal pure returns (IManagedPool) {
+        return _getPoolFromId(getPoolId());
     }
 }
