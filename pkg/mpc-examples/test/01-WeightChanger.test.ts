@@ -1,4 +1,4 @@
-import { assert } from 'chai';
+import { assert, expect } from 'chai';
 import { ethers } from 'hardhat';
 import { bn, fp } from '@orbcollective/shared-dependencies/numbers';
 import { Contract } from '@ethersproject/contracts';
@@ -13,6 +13,7 @@ import { BigNumber } from 'ethers';
 export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 let deployer: SignerWithAddress;
+let rando: SignerWithAddress;
 let mpcFactory: Contract;
 let weightChangerController: Contract;
 let tokenAddresses: string[];
@@ -88,9 +89,12 @@ async function deployLocalContract(contract: string, deployer: SignerWithAddress
 describe('WeightChangerController', () => {
   let vault: Contract;
   let tokens: TokenList;
+  let trader: SignerWithAddress;
 
   before('Setup', async () => {
-    ({ vault, tokens, deployer } = await setupEnvironment());
+    ({ vault, tokens, deployer, trader } = await setupEnvironment());
+
+    rando = trader;
 
     const pfpArgs = [vault.address, fp(0.1), fp(0.1)];
     const protocolFeesProvider = await deployBalancerContract(
@@ -207,6 +211,18 @@ describe('WeightChangerController', () => {
     });
   });
 
+  describe('Factory Access Control', () => {
+    it('Non-owner cannot disable the factory', async () => {
+      await expect(mpcFactory.connect(rando).disable()).to.be.revertedWith('Ownable: caller is not the owner');
+    });
+
+    it('Owner can disable the factory', async () => {
+      await deployController(deployer);
+      await mpcFactory.connect(deployer).disable();
+      await expect(deployController(deployer)).to.be.revertedWith('Controller factory disabled');
+    });
+  });
+
   async function checkTokenWeights(_tokenWeights: BigNumber[], _desiredWeights: BigNumber[]): Promise<boolean> {
     const tokenCount = (await weightChangerController.getTokens()).length;
     let correctWeights = 0;
@@ -243,4 +259,5 @@ describe('WeightChangerController', () => {
   //     }
   //   });
   // }
+
 });
