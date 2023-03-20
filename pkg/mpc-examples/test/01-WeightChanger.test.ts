@@ -4,7 +4,6 @@ import { bn, fp } from '@orbcollective/shared-dependencies/numbers';
 import { Contract } from '@ethersproject/contracts';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address';
 import { getBalancerContractArtifact } from '@balancer-labs/v2-deployments';
-import { getBalancerContractArtifact } from '@balancer-labs/v2-deployments';
 import * as expectEvent from '@orbcollective/shared-dependencies/expectEvent';
 import * as time from '@orbcollective/shared-dependencies/time';
 import { pickTokenAddresses, setupEnvironment, TokenList } from '@orbcollective/shared-dependencies';
@@ -50,7 +49,7 @@ async function deployController(deployer: SignerWithAddress): Promise<Contract> 
   const receipt = await (await mpcFactory.connect(deployer).create(newPoolParams)).wait();
   const eventController = expectEvent.inReceipt(receipt, 'ControllerCreated');
 
-  return ethers.getContractAt('WeightChanger', eventController.args.controller);
+  return ethers.getContractAt('WeightChangerController', eventController.args.controller);
 }
 
 async function fastForward(sec: number) {
@@ -116,7 +115,7 @@ describe('WeightChangerController', () => {
     );
 
     const controllerFactoryArgs = [vault.address, mpFactory.address];
-    mpcFactory = await deployLocalContract('weightChangerControllerFactory', deployer, controllerFactoryArgs);
+    mpcFactory = await deployLocalContract('WeightChangerControllerFactory', deployer, controllerFactoryArgs);
   });
 
   describe('Controller Deployment', () => {
@@ -149,60 +148,61 @@ describe('WeightChangerController', () => {
 
   // All weights are in terms of WETH/USDC
   describe('Change Managed Pool weights', () => {
-    context('Change weights to 50/50', () => {
-      let desiredWeights: BigNumber[];
-      beforeEach('call make5050 function', async () => {
-        desiredWeights = toNormalizedWeights([fp(50), fp(50)]);
+    context('Change weights to 50/50', async () => {
+      let weightGoals: BigNumber[];
+
+      beforeEach('call make9901 function', async () => {
+        weightGoals = toNormalizedWeights([fp(50), fp(50)]);
         weightChangerController = await deployController(deployer);
         await weightChangerController.make5050();
       });
 
-      it('Failure after 4 days', async () => {
-        await fastForward(time.DAY * 4);
-        assert.isNotTrue(await checkTokenWeights(await weightChangerController.getCurrentWeights(), desiredWeights));
-      });
-
-      it('Successful after 8 days', async () => {
-        await fastForward(time.DAY * 8);
-        assert.isTrue(await checkTokenWeights(await weightChangerController.getCurrentWeights(), desiredWeights));
+      it('Successful gradual updates throughout the weight update period', async () => {
+        let intervals = 5;
+        let timePerStep = (time.DAY * 7) / intervals;
+        for (let i = 1; i <= intervals; i++) {
+          console.log("step: ", i);
+          await fastForward(timePerStep);
+          assert.isTrue(await checkTokenWeights(await weightChangerController.getCurrentWeights(), await getDesiredWeights(initialWeights, weightGoals, i, intervals)));
+        }
       });
     });
 
-    context('Change weights to 80/20', () => {
-      let desiredWeights: BigNumber[];
-      beforeEach('call make8020 function', async () => {
-        desiredWeights = toNormalizedWeights([fp(80), fp(20)]);
+    context('Change weights to 80/20', async () => {
+      let weightGoals: BigNumber[];
+
+      beforeEach('call make9901 function', async () => {
+        weightGoals = toNormalizedWeights([fp(80), fp(20)]);
         weightChangerController = await deployController(deployer);
         await weightChangerController.make8020();
       });
 
-      it('Failure after 4 days', async () => {
-        await fastForward(time.DAY * 4);
-        assert.isNotTrue(await checkTokenWeights(await weightChangerController.getCurrentWeights(), desiredWeights));
-      });
-
-      it('Successful after 8 days', async () => {
-        await fastForward(time.DAY * 8);
-        assert.isTrue(await checkTokenWeights(await weightChangerController.getCurrentWeights(), desiredWeights));
+      it('Successful gradual updates throughout the weight update period', async () => {
+        let intervals = 5;
+        let timePerStep = (time.DAY * 7) / 5;
+        for (let i = 1; i <= intervals; i++) {
+          await fastForward(timePerStep);
+          assert.isTrue(await checkTokenWeights(await weightChangerController.getCurrentWeights(), await getDesiredWeights(initialWeights, weightGoals, i, intervals)));
+        }
       });
     });
 
     context('Change weights to 99/01', () => {
-      let desiredWeights: BigNumber[];
+      let weightGoals: BigNumber[];
+
       beforeEach('call make9901 function', async () => {
-        desiredWeights = toNormalizedWeights([fp(99), fp(1)]);
+        weightGoals = toNormalizedWeights([fp(99), fp(1)]);
         weightChangerController = await deployController(deployer);
         await weightChangerController.make9901();
       });
 
-      it('Failure after 4 days', async () => {
-        await fastForward(time.DAY * 4);
-        assert.isNotTrue(await checkTokenWeights(await weightChangerController.getCurrentWeights(), desiredWeights));
-      });
-
-      it('Successful after 8 days', async () => {
-        await fastForward(time.DAY * 8);
-        assert.isTrue(await checkTokenWeights(await weightChangerController.getCurrentWeights(), desiredWeights));
+      it('Successful gradual updates throughout the weight update period', async () => {
+        let intervals = 5;
+        let timePerStep = (time.DAY * 7) / 5;
+        for (let i = 1; i <= intervals; i++) {
+          await fastForward(timePerStep);
+          assert.isTrue(await checkTokenWeights(await weightChangerController.getCurrentWeights(), await getDesiredWeights(initialWeights, weightGoals, i, intervals)));
+        }
       });
     });
   });
@@ -210,12 +210,37 @@ describe('WeightChangerController', () => {
   async function checkTokenWeights(_tokenWeights: BigNumber[], _desiredWeights: BigNumber[]): Promise<boolean> {
     const tokenCount = (await weightChangerController.getTokens()).length;
     let correctWeights = 0;
-
     for (let i = 0; i < tokenCount; i++) {
+      console.log("token weight: ",_tokenWeights[i]);
+      console.log("desired weight: ", _desiredWeights[i]);
       if (_desiredWeights[i].toString() === _tokenWeights[i].toString()) {
         correctWeights += 1;
       }
     }
     return correctWeights == tokenCount;
   }
+
+
+  async function getDesiredWeights(_startingWeights: BigNumber[], _weightGoals: BigNumber[], interval: number, totalSteps: number): Promise<BigNumber[]>{
+    let desiredWeights: BigNumber[] = [];
+
+    for (let i = 0; i < _startingWeights.length; i++) {
+      let weightDifference = _weightGoals[i].sub(_startingWeights[i]);
+      let stepAmount = weightDifference.div(BigNumber.from(totalSteps));
+      let predictedWeight = _startingWeights[i].add(stepAmount.mul(BigNumber.from(interval)));
+      desiredWeights.push(predictedWeight);
+    }
+    return desiredWeights;
+  }
+
+  // async function testWeightChange(_weightGoals: BigNumber[]) {
+  //   it('Successful gradual updates throughout the weight update period', async () => {
+  //     let intervals = 5;
+  //     let timePerStep = (time.DAY * 7) / 5;
+  //     for (let i = 1; i <= intervals; i++) {
+  //       await fastForward(timePerStep);
+  //       assert.isTrue(await checkTokenWeights(await weightChangerController.getCurrentWeights(), await getDesiredWeights(initialWeights, _weightGoals, i, intervals)));
+  //     }
+  //   });
+  // }
 });

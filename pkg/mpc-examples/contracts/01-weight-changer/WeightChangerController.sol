@@ -21,6 +21,7 @@ import "@balancer-labs/v2-interfaces/contracts/pool-utils/IManagedPool.sol";
 import "@balancer-labs/v2-interfaces/contracts/vault/IVault.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/math/FixedPoint.sol";
 import "@balancer-labs/v2-pool-utils/contracts/lib/ComposablePoolLib.sol";
+import "../interfaces/IManagedPoolFactory.sol";
 
 // solhint-disable not-rely-on-time
 
@@ -56,21 +57,21 @@ contract WeightChangerController {
         uint256[] memory fiftyFifty = new uint256[](2);
         fiftyFifty[0] = 50e16;
         fiftyFifty[1] = 50e16;
-        _updateWeights(block.timestamp, block.timestamp + _REWEIGHT_DURATION, _getTokens(), fiftyFifty);
+        _updateWeights(block.timestamp, block.timestamp + _REWEIGHT_DURATION, getTokens(), fiftyFifty);
     }
 
     function make8020() public {
         uint256[] memory eightyTwenty = new uint256[](2);
         eightyTwenty[0] = 80e16;
         eightyTwenty[1] = 20e16;
-        _updateWeights(block.timestamp, block.timestamp + _REWEIGHT_DURATION, _getTokens(), eightyTwenty);
+        _updateWeights(block.timestamp, block.timestamp + _REWEIGHT_DURATION, getTokens(), eightyTwenty);
     }
 
     function make9901() public {
         uint256[] memory nintynineOne = new uint256[](2);
         nintynineOne[0] = 99e16;
         nintynineOne[1] = 1e16;
-        _updateWeights(block.timestamp, block.timestamp + _REWEIGHT_DURATION, _getTokens(), nintynineOne);
+        _updateWeights(block.timestamp, block.timestamp + _REWEIGHT_DURATION, getTokens(), nintynineOne);
     }
 
     // === Public Getters ===
@@ -83,7 +84,7 @@ contract WeightChangerController {
     }
 
     function getCurrentWeights() public view returns (uint256[] memory) {
-        return _pool.getNormalizedWeights();
+        return _getPool().getNormalizedWeights();
     }
 
     function getReweightDuration() public pure returns (uint256) {
@@ -109,6 +110,10 @@ contract WeightChangerController {
         return IManagedPool(address(uint256(poolId) >> (12 * 8)));
     }
 
+    function _getPool() internal view returns (IManagedPool) {
+        return _getPoolFromId(_poolId);
+    }
+
     function _setTokens(IERC20[] memory tokens) internal {
         _tokens = ComposablePoolLib.dropBptFromTokens(tokens);
     }
@@ -121,8 +126,8 @@ contract WeightChangerController {
         uint256[] memory weights
     ) internal returns (uint256) {
         _verifyWeights(weights);
-        _pool.updateWeightsGradually(startTime, endTime, tokens, weights);
-        return endBlock - startBlock;
+        _getPool().updateWeightsGradually(startTime, endTime, tokens, weights);
+        return endTime - startTime;
     }
 
     function _verifyWeight(uint256 normalizedWeight) internal pure returns (uint256) {
