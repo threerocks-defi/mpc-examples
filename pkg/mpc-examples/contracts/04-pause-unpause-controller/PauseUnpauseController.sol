@@ -54,11 +54,11 @@ contract PauseUnpauseController is Ownable {
     }
 
     function getSwapEnabled() public view returns (bool) {
-        return getPool().getSwapEnabled();
+        return _getPool().getSwapEnabled();
     }
 
     function isPoolPaused() public view returns (bool) {
-        return !getPool().getSwapEnabled();
+        return !_getPool().getSwapEnabled();
     }
 
     /// === Setters ===
@@ -68,7 +68,7 @@ contract PauseUnpauseController is Ownable {
      */
     function pausePool() external onlyOwner returns (bool) {
         require(getSwapEnabled(), "swapping with pool is already paused");
-        getPool().setSwapEnabled(false);
+        _getPool().setSwapEnabled(false);
         require(!getSwapEnabled(), "pausing swapping with the pool failed");
         // pool is confirmed paused
         return true;
@@ -87,7 +87,7 @@ contract PauseUnpauseController is Ownable {
     /* solhint-disable not-rely-on-time */
     function unpausePool(bool shouldSafeUnpause) external onlyOwner returns (bool) {
         if (shouldSafeUnpause) {
-            getPool().updateSwapFeeGradually(
+            _getPool().updateSwapFeeGradually(
                 block.timestamp,
                 block.timestamp + _SWAP_FEE_REDUCATION_DURATION,
                 _START_SWAP_FEE_PERCENTAGE,
@@ -95,10 +95,10 @@ contract PauseUnpauseController is Ownable {
             );
             // enabling swaps again after having updated the swap fee gradually is fine
             // even if the the start time is at a future time.
-            getPool().setSwapEnabled(true);
+            _getPool().setSwapEnabled(true);
             return true;
         } else {
-            getPool().setSwapEnabled(true);
+            _getPool().setSwapEnabled(true);
             return true;
         }
     }
