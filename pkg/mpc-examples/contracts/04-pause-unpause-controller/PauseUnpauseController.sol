@@ -29,17 +29,17 @@ contract PauseUnpauseController is Ownable {
     bytes32 private _poolId;
 
     constructor(IVault vault, address controllerOwner) {
-        //Get poolId from the factory
+        // Get poolId from the factory.
         bytes32 poolId = IManagedPool(ILastCreatedPoolFactory(msg.sender).getLastCreatedPool()).getPoolId();
 
         // Verify that this is a real Vault and the pool is registered - this call will revert if not.
         vault.getPool(poolId);
 
-        // store Vault, PoolId and pool
+        // store Vault and PoolId.
         _poolId = poolId;
         _vault = vault;
 
-        // transfer ownership from factory to manager
+        // Transfer ownership from factory to manager.
         transferOwnership(controllerOwner);
     }
 
@@ -64,7 +64,7 @@ contract PauseUnpauseController is Ownable {
     /// === Setters ===
 
     /**
-     * @notice Disables swapping
+     * @notice Disables swapping.
      */
     function pausePool() external onlyOwner returns (bool) {
         require(getSwapEnabled(), "swapping with pool is already paused");
@@ -75,13 +75,13 @@ contract PauseUnpauseController is Ownable {
     }
 
     /**
-     * @notice unpauses the pool in a safe or unsafe manner
-     * @dev a safe unpause is desirable as the market likely had price movements
+     * @notice Unpauses the pool in a safe or unsafe manner.
+     * @dev A safe unpause is desirable as the market likely had price movements
      * which have not been reflected in a paused pool. In order to not leak too much
      * arbitrage losses, the controller adjusts swap fees of the managed pool to
-     * _START_SWAP_FEE_PERCENTAGE instantly let's the market bring the pool back into balance
-     * via minimal viable arbitrage
-     * @param shouldSafeUnpause decision to safely unpause the pool
+     * _START_SWAP_FEE_PERCENTAGE instantly and let's the market bring the pool back
+     * into balance via minimal viable arbitrage.
+     * @param shouldSafeUnpause Decision to safely unpause the pool.
      */
 
     /* solhint-disable not-rely-on-time */
@@ -93,7 +93,7 @@ contract PauseUnpauseController is Ownable {
                 _START_SWAP_FEE_PERCENTAGE,
                 _END_SWAP_FEE_PERCENTAGE
             );
-            // enabling swaps again after having updated the swap fee gradually is fine
+            // Enabling swaps again after having updated the swap fee gradually is fine
             // even if the the start time is at a future time.
             _getPool().setSwapEnabled(true);
             return true;

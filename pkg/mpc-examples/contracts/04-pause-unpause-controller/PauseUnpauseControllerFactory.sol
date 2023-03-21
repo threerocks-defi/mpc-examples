@@ -15,22 +15,21 @@
 pragma solidity ^0.7.0;
 pragma experimental ABIEncoderV2;
 
+import "../interfaces/IManagedPoolFactory.sol";
+
 import "@balancer-labs/v2-interfaces/contracts/pool-utils/ILastCreatedPoolFactory.sol";
 import "@balancer-labs/v2-interfaces/contracts/pool-utils/IManagedPool.sol";
 import "@balancer-labs/v2-interfaces/contracts/vault/IVault.sol";
 
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/Create2.sol";
 
-import "../interfaces/IManagedPoolFactory.sol";
-
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 import "./PauseUnpauseController.sol";
 
 /**
- * @title
- * @notice
- * @dev
+ * @title PauseUnpauseControllerFactory
+ * @notice A factory contract able to create controller contract for Balancer's managed pools.
  */
 contract PauseUnpauseControllerFactory is Ownable {
     mapping(address => bool) public isControllerFromFactory;
@@ -92,7 +91,7 @@ contract PauseUnpauseControllerFactory is Ownable {
         // is focused on a secure pause/unpausing, allowing to freely pass asset managers
         // during pool creation could undermine the narrative that a paused pool does not have
         // any "token movements". Passing the controller as asset manager (which does not have
-        // any logic for that purpose) confirms that narrative for this example
+        // any logic for that purpose) confirms that narrative for this example.
         address[] memory assetManagers = new address[](minimalParams.tokens.length);
         for (uint256 i = 0; i < assetManagers.length; i++) {
             assetManagers[i] = expectedControllerAddress;
@@ -115,10 +114,10 @@ contract PauseUnpauseControllerFactory is Ownable {
         address actualControllerAddress = Create2.deploy(0, controllerSalt, controllerCreationCode);
         require(expectedControllerAddress == actualControllerAddress, "Deploy failed");
 
-        // Log controller locally
+        // Log controller locally.
         isControllerFromFactory[actualControllerAddress] = true;
 
-        // Log controller globally
+        // Log controller globally.
         emit ControllerCreated(actualControllerAddress, IManagedPool(_lastCreatedPool).getPoolId());
     }
 
