@@ -152,62 +152,26 @@ describe('WeightChangerController', () => {
 
   // All weights are in terms of WETH/USDC
   describe('Change Managed Pool weights', () => {
-    context('Change weights to 50/50', async () => {
-      let weightGoals: BigNumber[];
-
-      beforeEach('call make9901 function', async () => {
-        weightGoals = toNormalizedWeights([fp(50), fp(50)]);
-        weightChangerController = await deployController(deployer);
-        await weightChangerController.make5050();
-      });
-
-      it('Successful gradual updates throughout the weight update period', async () => {
-        let intervals = 5;
-        let timePerStep = (time.DAY * 7) / intervals;
-        for (let i = 1; i <= intervals; i++) {
-          console.log("step: ", i);
-          await fastForward(timePerStep);
-          assert.isTrue(await checkTokenWeights(await weightChangerController.getCurrentWeights(), await getDesiredWeights(initialWeights, weightGoals, i, intervals)));
-        }
-      });
+    beforeEach('Deploy controller', async () => {
+      weightChangerController = await deployController(deployer);
     });
 
-    context('Change weights to 80/20', async () => {
-      let weightGoals: BigNumber[];
-
-      beforeEach('call make9901 function', async () => {
-        weightGoals = toNormalizedWeights([fp(80), fp(20)]);
-        weightChangerController = await deployController(deployer);
-        await weightChangerController.make8020();
-      });
-
-      it('Successful gradual updates throughout the weight update period', async () => {
-        let intervals = 5;
-        let timePerStep = (time.DAY * 7) / 5;
-        for (let i = 1; i <= intervals; i++) {
-          await fastForward(timePerStep);
-          assert.isTrue(await checkTokenWeights(await weightChangerController.getCurrentWeights(), await getDesiredWeights(initialWeights, weightGoals, i, intervals)));
-        }
-      });
+    it('Change weights to 50/50', async () => {
+      const weightGoals: BigNumber[] = toNormalizedWeights([fp(50), fp(50)]);
+      await weightChangerController.make5050();
+      assert.isTrue(await testWeightChange(weightGoals));
     });
 
-    context('Change weights to 99/01', () => {
-      let weightGoals: BigNumber[];
+    it('Change weights to 80/20', async () => {
+      const weightGoals: BigNumber[] = toNormalizedWeights([fp(80), fp(20)]);
+      await weightChangerController.make8020();
+      assert.isTrue(await testWeightChange(weightGoals));
+    });
 
-      beforeEach('call make9901 function', async () => {
-        weightGoals = toNormalizedWeights([fp(99), fp(1)]);
-        weightChangerController = await deployController(deployer);
-        await weightChangerController.make9901();
-      });
-
-      it('Successful gradual updates throughout the weight update period', async () => {
-        let intervals = 5;
-        let timePerStep = (time.DAY * 7) / 5;
-        for (let i = 1; i <= intervals; i++) {
-          await fastForward(timePerStep);
-          assert.isTrue(await checkTokenWeights(await weightChangerController.getCurrentWeights(), await getDesiredWeights(initialWeights, weightGoals, i, intervals)));
-        }
-      });
+    it('Change weights to 99/01', async () => {
+      const weightGoals: BigNumber[] = toNormalizedWeights([fp(99), fp(1)]);
+      await weightChangerController.make9901();
+      assert.isTrue(await testWeightChange(weightGoals));
     });
   });
 
@@ -227,8 +191,6 @@ describe('WeightChangerController', () => {
     const tokenCount = (await weightChangerController.getTokens()).length;
     let correctWeights = 0;
     for (let i = 0; i < tokenCount; i++) {
-      console.log("token weight: ",_tokenWeights[i]);
-      console.log("desired weight: ", _desiredWeights[i]);
       if (_desiredWeights[i].toString() === _tokenWeights[i].toString()) {
         correctWeights += 1;
       }
@@ -236,28 +198,41 @@ describe('WeightChangerController', () => {
     return correctWeights == tokenCount;
   }
 
-
-  async function getDesiredWeights(_startingWeights: BigNumber[], _weightGoals: BigNumber[], interval: number, totalSteps: number): Promise<BigNumber[]>{
-    let desiredWeights: BigNumber[] = [];
+  async function getDesiredWeights(
+    _startingWeights: BigNumber[],
+    _weightGoals: BigNumber[],
+    interval: number,
+    totalSteps: number
+  ): Promise<BigNumber[]> {
+    const desiredWeights: BigNumber[] = [];
 
     for (let i = 0; i < _startingWeights.length; i++) {
-      let weightDifference = _weightGoals[i].sub(_startingWeights[i]);
-      let stepAmount = weightDifference.div(BigNumber.from(totalSteps));
-      let predictedWeight = _startingWeights[i].add(stepAmount.mul(BigNumber.from(interval)));
+      const weightDifference = _weightGoals[i].sub(_startingWeights[i]);
+      const stepAmount = weightDifference.div(BigNumber.from(totalSteps));
+      const predictedWeight = _startingWeights[i].add(stepAmount.mul(BigNumber.from(interval)));
       desiredWeights.push(predictedWeight);
     }
     return desiredWeights;
   }
 
-  // async function testWeightChange(_weightGoals: BigNumber[]) {
-  //   it('Successful gradual updates throughout the weight update period', async () => {
-  //     let intervals = 5;
-  //     let timePerStep = (time.DAY * 7) / 5;
-  //     for (let i = 1; i <= intervals; i++) {
-  //       await fastForward(timePerStep);
-  //       assert.isTrue(await checkTokenWeights(await weightChangerController.getCurrentWeights(), await getDesiredWeights(initialWeights, _weightGoals, i, intervals)));
-  //     }
-  //   });
-  // }
+  async function testWeightChange(_weightGoals: BigNumber[]): Promise<boolean> {
+    const intervals = 5;
+    const timePerStep = (time.DAY * 7) / intervals;
+    let accuracyCounter = 0;
+    for (let i = 1; i <= intervals; i++) {
+      await fastForward(timePerStep);
 
+      const result = await checkTokenWeights(
+        await weightChangerController.getCurrentWeights(),
+        await getDesiredWeights(initialWeights, _weightGoals, i, intervals)
+      );
+
+      if (!result) {
+        return false;
+      } else {
+        accuracyCounter++;
+      }
+    }
+    return accuracyCounter == intervals;
+  }
 });
