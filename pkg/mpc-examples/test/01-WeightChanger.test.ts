@@ -86,6 +86,50 @@ async function deployLocalContract(contract: string, deployer: SignerWithAddress
   return instance;
 }
 
+async function checkTokenWeights(_tokenWeights: BigNumber[], _desiredWeights: BigNumber[]): Promise<boolean> {
+  const tokenCount = (await weightChangerController.getTokens()).length;
+  let correctWeights = 0;
+  for (let i = 0; i < tokenCount; i++) {
+    if (_desiredWeights[i].toString() === _tokenWeights[i].toString()) {
+      correctWeights += 1;
+    }
+  }
+  return correctWeights == tokenCount;
+}
+
+async function getDesiredWeights(
+  _startingWeights: BigNumber[],
+  _weightGoals: BigNumber[],
+  interval: number,
+  totalSteps: number
+): Promise<BigNumber[]> {
+  const desiredWeights: BigNumber[] = [];
+
+  for (let i = 0; i < _startingWeights.length; i++) {
+    const weightDifference = _weightGoals[i].sub(_startingWeights[i]);
+    const stepAmount = weightDifference.div(BigNumber.from(totalSteps));
+    const predictedWeight = _startingWeights[i].add(stepAmount.mul(BigNumber.from(interval)));
+    desiredWeights.push(predictedWeight);
+  }
+  return desiredWeights;
+}
+
+async function testWeightChange(_weightGoals: BigNumber[], intervals: number): Promise<boolean> {
+  const timePerStep = (await weightChangerController.getReweightDuration()) / intervals;
+  for (let i = 1; i <= intervals; i++) {
+    await fastForward(timePerStep);
+    const result = await checkTokenWeights(
+      await weightChangerController.getCurrentWeights(),
+      await getDesiredWeights(initialWeights, _weightGoals, i, intervals)
+    );
+
+    if (!result) {
+      return false;
+    }
+  }
+  return true;
+}
+
 describe('WeightChangerController', () => {
   let vault: Contract;
   let tokens: TokenList;
@@ -159,19 +203,19 @@ describe('WeightChangerController', () => {
     it('Change weights to 50/50', async () => {
       const weightGoals: BigNumber[] = toNormalizedWeights([fp(50), fp(50)]);
       await weightChangerController.make5050();
-      assert.isTrue(await testWeightChange(weightGoals));
+      assert.isTrue(await testWeightChange(weightGoals, 5));
     });
 
     it('Change weights to 80/20', async () => {
       const weightGoals: BigNumber[] = toNormalizedWeights([fp(80), fp(20)]);
       await weightChangerController.make8020();
-      assert.isTrue(await testWeightChange(weightGoals));
+      assert.isTrue(await testWeightChange(weightGoals, 5));
     });
 
     it('Change weights to 99/01', async () => {
       const weightGoals: BigNumber[] = toNormalizedWeights([fp(99), fp(1)]);
       await weightChangerController.make9901();
-      assert.isTrue(await testWeightChange(weightGoals));
+      assert.isTrue(await testWeightChange(weightGoals, 5));
     });
   });
 
@@ -186,53 +230,4 @@ describe('WeightChangerController', () => {
       await expect(deployController(deployer)).to.be.revertedWith('Controller factory disabled');
     });
   });
-
-  async function checkTokenWeights(_tokenWeights: BigNumber[], _desiredWeights: BigNumber[]): Promise<boolean> {
-    const tokenCount = (await weightChangerController.getTokens()).length;
-    let correctWeights = 0;
-    for (let i = 0; i < tokenCount; i++) {
-      if (_desiredWeights[i].toString() === _tokenWeights[i].toString()) {
-        correctWeights += 1;
-      }
-    }
-    return correctWeights == tokenCount;
-  }
-
-  async function getDesiredWeights(
-    _startingWeights: BigNumber[],
-    _weightGoals: BigNumber[],
-    interval: number,
-    totalSteps: number
-  ): Promise<BigNumber[]> {
-    const desiredWeights: BigNumber[] = [];
-
-    for (let i = 0; i < _startingWeights.length; i++) {
-      const weightDifference = _weightGoals[i].sub(_startingWeights[i]);
-      const stepAmount = weightDifference.div(BigNumber.from(totalSteps));
-      const predictedWeight = _startingWeights[i].add(stepAmount.mul(BigNumber.from(interval)));
-      desiredWeights.push(predictedWeight);
-    }
-    return desiredWeights;
-  }
-
-  async function testWeightChange(_weightGoals: BigNumber[]): Promise<boolean> {
-    const intervals = 5;
-    const timePerStep = (time.DAY * 7) / intervals;
-    let accuracyCounter = 0;
-    for (let i = 1; i <= intervals; i++) {
-      await fastForward(timePerStep);
-
-      const result = await checkTokenWeights(
-        await weightChangerController.getCurrentWeights(),
-        await getDesiredWeights(initialWeights, _weightGoals, i, intervals)
-      );
-
-      if (!result) {
-        return false;
-      } else {
-        accuracyCounter++;
-      }
-    }
-    return accuracyCounter == intervals;
-  }
 });

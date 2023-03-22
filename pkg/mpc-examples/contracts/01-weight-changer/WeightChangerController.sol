@@ -54,24 +54,24 @@ contract WeightChangerController {
     }
 
     function make5050() public {
-        uint256[] memory fiftyFifty = new uint256[](2);
-        fiftyFifty[0] = 50e16;
-        fiftyFifty[1] = 50e16;
-        _updateWeights(block.timestamp, block.timestamp + _REWEIGHT_DURATION, getTokens(), fiftyFifty);
+        uint256[] memory newWeights = new uint256[](2);
+        newWeights[0] = 50e16;
+        newWeights[1] = 50e16;
+        _updateWeights(block.timestamp, block.timestamp + _REWEIGHT_DURATION, getTokens(), newWeights);
     }
 
     function make8020() public {
-        uint256[] memory eightyTwenty = new uint256[](2);
-        eightyTwenty[0] = 80e16;
-        eightyTwenty[1] = 20e16;
-        _updateWeights(block.timestamp, block.timestamp + _REWEIGHT_DURATION, getTokens(), eightyTwenty);
+        uint256[] memory newWeights = new uint256[](2);
+        newWeights[0] = 80e16;
+        newWeights[1] = 20e16;
+        _updateWeights(block.timestamp, block.timestamp + _REWEIGHT_DURATION, getTokens(), newWeights);
     }
 
     function make9901() public {
-        uint256[] memory nintynineOne = new uint256[](2);
-        nintynineOne[0] = 99e16;
-        nintynineOne[1] = 1e16;
-        _updateWeights(block.timestamp, block.timestamp + _REWEIGHT_DURATION, getTokens(), nintynineOne);
+        uint256[] memory newWeights = new uint256[](2);
+        newWeights[0] = 99e16;
+        newWeights[1] = 1e16;
+        _updateWeights(block.timestamp, block.timestamp + _REWEIGHT_DURATION, getTokens(), newWeights);
     }
 
     // === Public Getters ===
@@ -111,7 +111,7 @@ contract WeightChangerController {
     }
 
     function _getPool() internal view returns (IManagedPool) {
-        return _getPoolFromId(_poolId);
+        return _getPoolFromId(getPoolId());
     }
 
     function _setTokens(IERC20[] memory tokens) internal {
@@ -131,19 +131,17 @@ contract WeightChangerController {
     }
 
     function _verifyWeight(uint256 normalizedWeight) internal pure returns (uint256) {
-        require(normalizedWeight >= _MIN_WEIGHT, "Weight less than minimum requirement");
-        require(normalizedWeight <= _MAX_WEIGHT, "Weight greater than maximum requirement");
+        require(normalizedWeight >= _MIN_WEIGHT, "Weight under minimum");
+        require(normalizedWeight <= _MAX_WEIGHT, "Weight over maximum");
         return normalizedWeight;
     }
 
-    function _verifyWeights(uint256[] memory normalizedWeights) internal pure returns (uint256[] memory) {
+    function _verifyWeights(uint256[] memory normalizedWeights) internal pure {
         uint256 normalizedSum = 0;
         for (uint256 i = 0; i < normalizedWeights.length; i++) {
             normalizedSum = normalizedSum.add(_verifyWeight(normalizedWeights[i]));
         }
 
         require(normalizedSum == FixedPoint.ONE, "Weights must sum to one");
-
-        return normalizedWeights;
     }
 }
