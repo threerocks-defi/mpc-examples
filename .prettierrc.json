@@ -10,19 +10,20 @@
     "tabWidth": 2,
     "trailingComma": "es5",
     "useTabs": false,
+
     "overrides": [
       {
-          "files": "*.sol",
-          "options": {
-              "singleQuote": false,
-              "tabWidth": 4
-          }
+        "files": "*.sol",
+        "options": {
+          "singleQuote": false,
+          "tabWidth": 4
+        }
       },
       {
-          "files": "*.md",
-          "options": {
-              "printWidth": 80
-          }
+        "files": "*.md",
+        "options": {
+          "printWidth": 80
+        }
       }
     ]
 }
