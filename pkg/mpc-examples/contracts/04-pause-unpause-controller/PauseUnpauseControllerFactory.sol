@@ -35,7 +35,7 @@ contract PauseUnpauseControllerFactory is Ownable {
     mapping(address => bool) public isControllerFromFactory;
 
     IManagedPoolFactory public immutable managedPoolFactory;
-    bool private _isDisabled;
+    bool private _disabled;
     IVault public immutable balancerVault;
 
     uint256 private _nextControllerSalt;
@@ -66,7 +66,7 @@ contract PauseUnpauseControllerFactory is Ownable {
     /// === Getters === ///
 
     function isDisabled() public view returns (bool) {
-        return _isDisabled;
+        return _disabled;
     }
 
     function getLastCreatedPool() external view returns (address) {
@@ -130,7 +130,8 @@ contract PauseUnpauseControllerFactory is Ownable {
      * be implemented to allow for different needs.
      */
     function disable() external onlyOwner {
-        _isDisabled = true;
+        _ensureEnabled();
+        _disabled = true;
         emit Disabled();
     }
 
