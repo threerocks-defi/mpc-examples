@@ -159,14 +159,20 @@ describe('EBURebalancerController', () => {
     });
 
     it('Fail to call rebalance, until the 30th day in which the call will be successful', async () => {
-      await fastForward(time.WEEK * 3);
-      await expect(ebuRebalancerController.rebalancePool()).to.be.revertedWith('Minimum time between calls not met');
-    });
+      const intervals = 5;
+      const timePerStep = time.MONTH / intervals;
 
-    it('Successfully call rebalance 31 days after original rebalance', async () => {
-      await fastForward(time.MONTH);
-      const receipt = await (await ebuRebalancerController.rebalancePool()).wait();
-      await expectEvent.inReceipt(receipt, 'PoolRebalancing');
+      for (let i = 1; i <= intervals; i++) {
+        await fastForward(timePerStep);
+        if (i != intervals) {
+          await expect(ebuRebalancerController.rebalancePool()).to.be.revertedWith(
+            'Minimum time between calls not met'
+          );
+        } else {
+          const receipt = await (await ebuRebalancerController.rebalancePool()).wait();
+          await expectEvent.inReceipt(receipt, 'PoolRebalancing');
+        }
+      }
     });
 
     it('successfully pause swaps then rebalance', async () => {
