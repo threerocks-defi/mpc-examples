@@ -124,10 +124,9 @@ contract WeightChangerController {
         uint256 endTime,
         IERC20[] memory tokens,
         uint256[] memory weights
-    ) internal returns (uint256) {
+    ) internal {
         _verifyWeights(weights);
         _getPool().updateWeightsGradually(startTime, endTime, tokens, weights);
-        return endTime - startTime;
     }
 
     function _verifyWeight(uint256 normalizedWeight) internal pure returns (uint256) {
