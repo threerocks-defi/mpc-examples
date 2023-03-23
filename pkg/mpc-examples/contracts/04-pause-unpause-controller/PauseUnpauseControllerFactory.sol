@@ -49,7 +49,6 @@ contract PauseUnpauseControllerFactory is Ownable {
         string symbol;
         IERC20[] tokens;
         uint256[] normalizedWeights;
-        // uint256[] assetManagers;
         uint256 swapFeePercentage;
         bool swapEnabledOnStart;
         uint256 managementAumFeePercentage;
@@ -120,6 +119,12 @@ contract PauseUnpauseControllerFactory is Ownable {
         emit ControllerCreated(actualControllerAddress, IManagedPool(_lastCreatedPool).getPoolId());
     }
 
+    /**
+     * @dev Allow the owner to disable the factory, preventing future deployments.
+     * @notice owner is initially the factory deployer, but this role can be transferred.
+     * @dev The onlyOwner access control paradigm is an example. Any access control can
+     * be implemented to allow for different needs.
+     */
     function disable() external onlyOwner {
         isDisabled = true;
         emit Disabled();
