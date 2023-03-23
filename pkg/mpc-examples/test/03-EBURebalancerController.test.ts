@@ -5,6 +5,7 @@ import { Contract } from '@ethersproject/contracts';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address';
 import { getBalancerContractArtifact } from '@balancer-labs/v2-deployments';
 import * as expectEvent from '@orbcollective/shared-dependencies/expectEvent';
+import * as time from '@orbcollective/shared-dependencies/time';
 import { setupEnvironment, TokenList, pickTokenAddresses } from '@orbcollective/shared-dependencies';
 import { toNormalizedWeights } from '@balancer-labs/balancer-js';
 
@@ -140,14 +141,14 @@ describe('EBURebalancerController', () => {
   });
 
   describe('Rebalance Pool', () => {
-    beforeEach('Call rebalance', async () => {
-      await fastForward(2678400);
+    beforeEach('Deploy controller and call rebalance', async () => {
+      ebuRebalancerController = await deployController(deployer);
       await ebuRebalancerController.rebalancePool();
     });
 
     it('pause swaps successfully', async () => {
       // fast-forward time 7 days and pause swaps
-      await fastForward(605002);
+      await fastForward(time.WEEK);
       await ebuRebalancerController.pausePool();
 
       assert.equal(await ebuRebalancerController.isPoolPaused(), true);
@@ -158,18 +159,18 @@ describe('EBURebalancerController', () => {
     });
 
     it('Fail to call rebalance, until the 30th day in which the call will be successful', async () => {
-      await fastForward(345600);
+      await fastForward(time.WEEK * 3);
       await expect(ebuRebalancerController.rebalancePool()).to.be.revertedWith('Minimum time between calls not met');
     });
 
     it('Successfully call rebalance 31 days after original rebalance', async () => {
-      await fastForward(2678400);
+      await fastForward(time.MONTH);
       const receipt = await (await ebuRebalancerController.rebalancePool()).wait();
       await expectEvent.inReceipt(receipt, 'PoolRebalancing');
     });
 
     it('successfully pause swaps then rebalance', async () => {
-      await fastForward(2678400);
+      await fastForward(time.MONTH);
       await ebuRebalancerController.pausePool();
       const receipt = await (await ebuRebalancerController.rebalancePool()).wait();
       await expectEvent.inReceipt(receipt, 'PoolRebalancing');
