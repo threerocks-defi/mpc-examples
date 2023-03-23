@@ -203,6 +203,7 @@ describe('PauseUnpauseController', function () {
       it('Owner can disable the factory', async () => {
         await deployController(deployer, controllerOwner);
         await mpcFactory.connect(deployer).disable();
+        expect(await mpcFactory.isDisabled()).to.be.true;
         await expect(deployController(deployer, controllerOwner)).to.be.revertedWith('Controller factory is disabled');
       });
     });
