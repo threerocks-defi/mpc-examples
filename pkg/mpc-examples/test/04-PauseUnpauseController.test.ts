@@ -111,8 +111,8 @@ describe('PauseUnpauseController', function () {
     );
 
     mpcFactory = await deployLocalContract('PauseUnpauseControllerFactory', deployer, [
-      mpFactory.address,
       vault.address,
+      mpFactory.address,
     ]);
   });
 

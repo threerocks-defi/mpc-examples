@@ -59,7 +59,7 @@ contract PauseUnpauseControllerFactory is Ownable {
     event ControllerCreated(address indexed controller, bytes32 poolId);
     event Disabled();
 
-    constructor(address factory, IVault vault) {
+    constructor(IVault vault, address factory) {
         managedPoolFactory = IManagedPoolFactory(factory);
         balancerVault = vault;
     }
