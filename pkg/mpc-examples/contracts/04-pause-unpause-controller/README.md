@@ -1,11 +1,10 @@
-# NullController
+# PauseUnpauseController
 
 ## Summary
 PauseUnpauseController is a Managed Pool Controller that has the ability to enable & disable swaps of a managed pool. The PauseUnpauseController exists to work as a mental model for how enabling & disabling swaps of a managed pool can work. PauseUnpauseControllerFactory demonstrates a factory that can deploy both a Managed Pool and a controller that are both aware of each other without using a separate `initialize()` function.
 
 ## Details
-The PauseUnpauseController has two functionalities. It can disable the swaps going through a managed pool. 
-The second functionality is the enabling of pool swaps. This behaviour is expected to be used once swapping of a managed pool has been paused and should be enabled again. The two possible ways to unpause the pool are:
+The PauseUnpauseController has two functionalities. It can enable and disable the ability to swap in a managed pool. The enable swaps feature is expected to be used once swapping of a managed pool has been paused and should be enabled again. The two possible ways to unpause the pool are:
 
 - unsafe unpause (no gradualSwapFeePercentage change)
 - safe unpause (gradualSwapFeePercentage change)
@@ -14,10 +13,10 @@ The safe unpause mechanism can be used to mitigate arbitrage losses occuring if 
 
 ## Access Control
 
-### NullController
+### PauseUnpauseController
 The PauseUnpause controller uses OZ's Ownable. This allows the pausing & unpausing of the managed pool to only be done as the owner of the PauseUnpauseController
 
-### NullControllerFactory
+### PauseUnpauseControllerFactory
 The factory has one permissioned function: `disable()`. Using OZ's Ownable, the factory restricts permission to only the contract `owner`. Ownable was chosen as it is a very simple concept that requires little explanation; however, it may be desirable to grant this permission to more than a single `owner`. Using a solution such as Balancer's [SingletonAuthentication](https://github.com/balancer/balancer-v2-monorepo/blob/3e99500640449585e8da20d50687376bcf70462f/pkg/solidity-utils/contracts/helpers/SingletonAuthentication.sol) could be a useful system for many controller factories.
 
 ## Managed Pool Functions

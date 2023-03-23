@@ -149,7 +149,7 @@ describe('PauseUnpauseController', function () {
       }
     });
 
-    it('checks if controller is logged in the factory', async () => {
+    it('checks if controller is from the factory', async () => {
       expect(await mpcFactory.isControllerFromFactory(localController.address)).to.be.true;
     });
 
