@@ -52,7 +52,6 @@ contract PauseUnpauseControllerFactory is Ownable {
         // uint256[] assetManagers;
         uint256 swapFeePercentage;
         bool swapEnabledOnStart;
-        bool mustAllowlistLPs;
         uint256 managementAumFeePercentage;
         uint256 aumFeeId;
     }
@@ -105,7 +104,7 @@ contract PauseUnpauseControllerFactory is Ownable {
         fullParams.assetManagers = assetManagers;
         fullParams.swapFeePercentage = minimalParams.swapFeePercentage;
         fullParams.swapEnabledOnStart = minimalParams.swapEnabledOnStart;
-        fullParams.mustAllowlistLPs = minimalParams.mustAllowlistLPs;
+        fullParams.mustAllowlistLPs = false;
         fullParams.managementAumFeePercentage = minimalParams.managementAumFeePercentage;
         fullParams.aumFeeId = minimalParams.aumFeeId;
 

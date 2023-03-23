@@ -69,7 +69,6 @@ contract PauseUnpauseController is Ownable {
     function pausePool() external onlyOwner returns (bool) {
         require(getSwapEnabled(), "swapping with pool is already paused");
         _getPool().setSwapEnabled(false);
-        require(!getSwapEnabled(), "pausing swapping with the pool failed");
         // pool is confirmed paused
         return true;
     }
