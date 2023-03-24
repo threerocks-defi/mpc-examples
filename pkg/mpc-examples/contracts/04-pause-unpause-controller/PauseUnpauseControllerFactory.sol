@@ -75,7 +75,7 @@ contract PauseUnpauseControllerFactory is Ownable {
 
     /// === Setters === ///
 
-    function create(MinimalPoolParams memory minimalParams, address controllerOwner) external {
+    function create(MinimalPoolParams calldata minimalParams, address controllerOwner) external {
         // checks
         _ensureEnabled();
 
