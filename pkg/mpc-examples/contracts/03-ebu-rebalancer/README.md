@@ -1,16 +1,16 @@
 # EBU Rebalancer Controller
 
 ## Summary
-EBURebalancerController is a Managed Pool Controller that has the ability to pause swaps as well as promote rebalancing through the gradual lowering of swap fees. 
+EbuRebalancerController is a Managed Pool Controller that has the ability to pause swaps as well as promote rebalancing through the gradual lowering of swap fees. 
 
 ## Details
-The EbuRebalancer is a Managed Pool Controller that makes the pool a nominally static basket of tokens. It enables anyone to rebalance the Managed Pool by enabling swaps with an extremely high swap fee, ramping the fees down gradually to a nominal value over the course of 7 days. This lowering of swap fees incentivizes arbitrageurs to bring the pool back to its desired weight.
+The EbuRebalancer is a Managed Pool Controller that makes the pool a nominally static basket of tokens. It allows anyone to rebalance the Managed Pool by using the `rebalancePool` function. The rebalance works by enabling swaps with an extremely high swap fee and gradually ramping down the fees to a nominal (near-zero) value. The gradual swap fee decrease incentivizes arbitrageurs to bring the pool back to its desired weight by progressively creating minimally viable arbitrage opportunities.
 
 ## Access Control
-### EBURebalancerController
-The controller has no access control and all callable functions can be executed by any account. There are constraints within the `rebalance()` function, as it can only be called once every `30 days`. The rebalance period is set for `7 days`. During this time period the ability to call `pausePool()` is locked. 
+### EbuRebalancerController
+The controller has no access control and all callable functions can be executed by any account. There are constraints within the `rebalancePool()` function, as it can only be called once every `30 days`. The rebalance period is set for `7 days`. During this time period the ability to call `pausePool()` is locked. 
 
-### EBURebalancerFactory
+### EbuRebalancerFactory
 The factory has one permissioned function: `disable()`. Using OZ's Ownable, the factory restricts permission to only the contract `owner`. Ownable was chosen as it is a very simple concept that requires little explanation; however, it may be desirable to grant this permission to more than a single `owner`. Using a solution such as Balancer's [SingletonAuthentication](https://github.com/balancer/balancer-v2-monorepo/blob/3e99500640449585e8da20d50687376bcf70462f/pkg/solidity-utils/contracts/helpers/SingletonAuthentication.sol) could be a useful system for many controller factories.
 
 ## Managed Pool Functions

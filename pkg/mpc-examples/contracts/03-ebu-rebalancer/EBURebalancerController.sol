@@ -35,13 +35,13 @@ contract EBURebalancerController {
     event PoolRebalancing(uint256 indexed startTime, uint256 endTime);
 
     constructor(IVault vault, uint256 minSwapFeePercentage) {
-        // Get poolId from the factory
+        // Get poolId from the factory.
         bytes32 poolId = IManagedPool(ILastCreatedPoolFactory(msg.sender).getLastCreatedPool()).getPoolId();
 
         // Verify that this is a real Vault and the pool is registered - this call will revert if not.
         vault.getPool(poolId);
 
-        // Store Vault and poolId
+        // Store Vault and poolId.
         _vault = vault;
         _poolId = poolId;
 
@@ -58,7 +58,7 @@ contract EBURebalancerController {
             _getPool().setSwapEnabled(true);
         }
 
-        // Updates swap fee from 100% to 0.01%
+        // Updates swap fee from max fee (near 100%) to min fee (near 0%).```
         _getPool().updateSwapFeeGradually(
             block.timestamp,
             block.timestamp + _REBALANCE_DURATION,
