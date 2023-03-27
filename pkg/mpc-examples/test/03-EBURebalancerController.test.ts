@@ -133,7 +133,7 @@ describe('EBURebalancerController', () => {
       const poolId = await ebuRebalancerController.getPoolId();
       const tokens = await ebuRebalancerController.getPoolTokens();
 
-      for (let i = 0; i < tokens.length; i++) {
+      for (let i = 0;i < tokens.length;i++) {
         const info = await vault.getPoolTokenInfo(poolId, tokens[i]);
         assert.equal(info.assetManager, ebuRebalancerController.address);
       }
@@ -158,16 +158,53 @@ describe('EBURebalancerController', () => {
       await expect(ebuRebalancerController.pausePool()).to.be.revertedWith('Pool is still rebalancing');
     });
 
+    it('Fail to rebalance when the pool is not paused', async () => {
+      await fastForward(time.MONTH);
+      await expect(ebuRebalancerController.rebalancePool()).to.be.revertedWith('Pool must be paused to call rebalance');
+    });
+
+    it('Failed to rebalance until 7 days after last pause', async () => {
+      const intervals = 5;
+      const timePerStep = time.WEEK / intervals;
+
+      // fast-forward a month where we are allowed to call rebalance
+      await fastForward(time.MONTH);
+
+      // fast-forward time 7 days and pause swaps
+      await fastForward(time.WEEK);
+      await ebuRebalancerController.pausePool();
+
+      for (let i = 1;i <= intervals;i++) {
+        await fastForward(timePerStep);
+
+        if (i != intervals) {
+          await expect(ebuRebalancerController.rebalancePool()).to.be.revertedWith(
+            'Pool must be paused for at least 7 days'
+          );
+        } else {
+          const receipt = await (await ebuRebalancerController.rebalancePool()).wait();
+          await expectEvent.inReceipt(receipt, 'PoolRebalancing');
+        }
+      }
+    });
+
     it('Fail to call rebalance, until the 30th day in which the call will be successful', async () => {
       const intervals = 5;
       const timePerStep = time.MONTH / intervals;
+      const pauseInterval = Math.ceil(intervals / 2);
 
-      for (let i = 1; i <= intervals; i++) {
+      for (let i = 1;i <= intervals;i++) {
         await fastForward(timePerStep);
         if (i != intervals) {
           await expect(ebuRebalancerController.rebalancePool()).to.be.revertedWith(
             'Minimum time between calls not met'
           );
+
+          // Halfway through we will pause the pool
+          if (i == pauseInterval) {
+            await ebuRebalancerController.pausePool();
+          }
+
         } else {
           const receipt = await (await ebuRebalancerController.rebalancePool()).wait();
           await expectEvent.inReceipt(receipt, 'PoolRebalancing');
@@ -178,6 +215,8 @@ describe('EBURebalancerController', () => {
     it('successfully pause swaps then rebalance', async () => {
       await fastForward(time.MONTH);
       await ebuRebalancerController.pausePool();
+      await fastForward(time.WEEK);
+
       const receipt = await (await ebuRebalancerController.rebalancePool()).wait();
       await expectEvent.inReceipt(receipt, 'PoolRebalancing');
     });

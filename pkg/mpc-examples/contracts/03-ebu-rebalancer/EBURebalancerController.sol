@@ -28,8 +28,10 @@ contract EBURebalancerController {
 
     uint256 private constant _MINIMUM_DURATION_BETWEEN_REBALANCE = 30 days;
     uint256 private constant _REBALANCE_DURATION = 7 days;
+    uint256 private constant _MIN_PAUSE_DURATION = 7 days;
     uint256 private constant _MAX_SWAP_FEE_PERCENTAGE = 95e16; // 95%
     uint256 private immutable _minSwapFeePercentage;
+    uint256 private _lastPauseCall;
     uint256 private _lastRebalanceCall;
 
     event PoolRebalancing(uint256 indexed startTime, uint256 endTime);
@@ -53,10 +55,10 @@ contract EBURebalancerController {
             block.timestamp - _lastRebalanceCall >= _MINIMUM_DURATION_BETWEEN_REBALANCE,
             "Minimum time between calls not met"
         );
+        require(isPoolPaused(), "Pool must be paused to call rebalance");
+        require(block.timestamp - _lastPauseCall >= _MIN_PAUSE_DURATION, "Pool must be paused for at least 7 days");
 
-        if (isPoolPaused()) {
-            _getPool().setSwapEnabled(true);
-        }
+        _enableSwaps();
 
         // Updates swap fee from max fee (near 100%) to min fee (near 0%).```
         _getPool().updateSwapFeeGradually(
@@ -68,13 +70,15 @@ contract EBURebalancerController {
 
         _lastRebalanceCall = block.timestamp;
 
-        emit PoolRebalancing(_lastRebalanceCall, _lastRebalanceCall + _REBALANCE_DURATION);
+        emit PoolRebalancing(block.timestamp, block.timestamp + _REBALANCE_DURATION);
     }
 
     function pausePool() public {
         require(block.timestamp >= _lastRebalanceCall + _REBALANCE_DURATION, "Pool is still rebalancing");
         require(!isPoolPaused(), "Swaps are already paused");
+
         _getPool().setSwapEnabled(false);
+        _lastPauseCall = block.timestamp;
     }
 
     function isPoolPaused() public view returns (bool) {
@@ -103,5 +107,9 @@ contract EBURebalancerController {
 
     function _getPool() internal view returns (IManagedPool) {
         return _getPoolFromId(getPoolId());
+    }
+
+    function _enableSwaps() internal {
+        _getPool().setSwapEnabled(true);
     }
 }
