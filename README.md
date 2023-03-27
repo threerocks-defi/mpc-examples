@@ -11,6 +11,7 @@ This repository contains simplified examples of possible functionality in a Mana
 | Number | Controller      | Description |
 | ----------- | ----------- | ----------- |
 | 00 | [NullController](./pkg/mpc-examples/contracts/00-null-controller/README.md) | Empty controller that does nothing |
+| 03 | [EBURebalancerController](./pkg/mpc-examples/contracts/03-ebu-rebalancer/README.md) | Controller that allows users to rebalance a managed pool as well as pause swaps |
 
 ## Build and Test
 
