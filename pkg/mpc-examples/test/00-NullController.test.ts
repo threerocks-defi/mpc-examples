@@ -12,7 +12,7 @@ import { toNormalizedWeights } from '@balancer-labs/balancer-js';
 
 export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
-let deployer: SignerWithAddress;
+let deployer: SignerWithAddress, rando: SignerWithAddress;
 let mpcFactory: Contract;
 let tokenAddresses: string[];
 
@@ -37,10 +37,10 @@ async function deployController(deployer: SignerWithAddress): Promise<Contract> 
     symbol: 'MTP',
     tokens: tokenAddresses,
     normalizedWeights: initialWeights,
-    assetManagers: [ZERO_ADDRESS, ZERO_ADDRESS], // this will be overwritten in the MPC factory
+    // assetManagers: [ZERO_ADDRESS, ZERO_ADDRESS],
     swapFeePercentage: swapFeePercentage,
     swapEnabledOnStart: true,
-    mustAllowlistLPs: false, // this will be overwritten in the MPC factory
+    // mustAllowlistLPs: false,
     managementAumFeePercentage: fp(0.1),
     aumFeeId: 0,
   };
@@ -91,9 +91,9 @@ describe('NullController', function () {
   let tokens: TokenList;
 
   before('Setup', async () => {
-    /* eslint-disable @typescript-eslint/no-unused-vars */
-    let trader, liquidityProvider;
-    ({ vault, tokens, deployer, trader, liquidityProvider } = await setupEnvironment());
+    let trader: SignerWithAddress;
+    ({ vault, tokens, deployer, trader } = await setupEnvironment());
+    rando = trader;
 
     const pfpArgs = [vault.address, fp(0.1), fp(0.1)];
     const protocolFeesProvider = await deployBalancerContract(
@@ -124,8 +124,7 @@ describe('NullController', function () {
   describe('Controller Deployment', () => {
     let localController: Contract;
     beforeEach('deploy', async () => {
-      const args = [vault.address];
-      localController = await deployController(deployer, args);
+      localController = await deployController(deployer);
     });
 
     it("Local Controller's Vault is the Vault", async () => {
@@ -138,6 +137,25 @@ describe('NullController', function () {
         const info = await vault.getPoolTokenInfo(poolId, tokenAddresses[i]);
         assert.equal(info.assetManager, localController.address);
       }
+    });
+    it('Controller is logged in the factory', async () => {
+      assert(await mpcFactory.isControllerFromFactory(localController.address));
+    });
+
+    it('Controller at ZERO_ADDRESS is not logged in the factory', async () => {
+      assert(!(await mpcFactory.isControllerFromFactory(ZERO_ADDRESS)));
+    });
+  });
+
+  describe('Factory Access Control', () => {
+    it('Non-owner cannot disable the factory', async () => {
+      await expect(mpcFactory.connect(rando).disable()).to.be.revertedWith('Ownable: caller is not the owner');
+    });
+
+    it('Owner can disable the factory', async () => {
+      await deployController(deployer);
+      await mpcFactory.connect(deployer).disable();
+      await expect(deployController(deployer)).to.be.revertedWith('Controller factory disabled');
     });
   });
 });

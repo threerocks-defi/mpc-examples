@@ -240,22 +240,6 @@ describe.only('CrpController', function () {
       }
     });
   });
-
-// setMustAllowlistLPs
-// addAllowedAddress
-// removeAllowedAddress
-
-// addToken
-// removeToken
-
-// setCircuitBreakers
-// setJoinExitEnabled
-// setManagementAumFeePercentage
-// setSwapEnabled
-// updateSwapFeeGradually
-// updateWeightsGradually
-
-
   describe('Liquidity Provider Allowlist Validation (setMustAllowlistLPs = true)', () => {
     describe("addAllowedAddress = false, removeAllowedAddress = false", async () => {
       let localController: Contract;
