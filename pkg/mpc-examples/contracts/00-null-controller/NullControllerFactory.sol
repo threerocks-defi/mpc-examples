@@ -72,8 +72,7 @@ contract NullControllerFactory is Ownable {
      * @dev Deploy a Managed Pool and a Controller.
      */
     function create(MinimalPoolParams calldata minimalParams) external {
-        require(!isDisabled, "Controller factory disabled");
-        require(!IManagedPoolFactory(managedPoolFactory).isDisabled(), "Pool factory disabled");
+        _ensureEnabled();
 
         bytes32 controllerSalt = bytes32(_nextControllerSalt);
         _nextControllerSalt += 1;
