@@ -1,7 +1,7 @@
 # EBU Rebalancer Controller
 
 ## Summary
-EbuRebalancerController is a Managed Pool Controller that has the ability to pause swaps as well as promote rebalancing through the gradual lowering of swap fees. 
+EbuRebalancerController is a Managed Pool Controller designed to implement a pool that behaves as a static basket of tokens that can periodically rebalance its tokens back to its target weightings.
 
 ## Details
 The EbuRebalancer is a Managed Pool Controller that makes the pool a nominally static basket of tokens. It allows anyone to rebalance the Managed Pool by using the `rebalancePool` function. The rebalance works by enabling swaps with an extremely high swap fee and gradually ramping down the fees to a nominal (near-zero) value. The gradual swap fee decrease incentivizes arbitrageurs to bring the pool back to its desired weight by progressively creating minimally viable arbitrage opportunities.

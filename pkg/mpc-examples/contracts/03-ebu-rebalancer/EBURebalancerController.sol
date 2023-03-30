@@ -22,7 +22,7 @@ import "@balancer-labs/v2-pool-utils/contracts/lib/ComposablePoolLib.sol";
 
 // solhint-disable not-rely-on-time
 
-contract EBURebalancerController {
+contract EbuRebalancerController {
     IVault private immutable _vault;
     bytes32 private immutable _poolId;
 
@@ -47,6 +47,7 @@ contract EBURebalancerController {
         _vault = vault;
         _poolId = poolId;
 
+        // Set minimum swap fee percentage.
         _minSwapFeePercentage = minSwapFeePercentage;
     }
 
@@ -55,8 +56,8 @@ contract EBURebalancerController {
             block.timestamp - _lastRebalanceCall >= _MINIMUM_DURATION_BETWEEN_REBALANCE,
             "Minimum time between calls not met"
         );
-        require(isPoolPaused(), "Pool must be paused to call rebalance");
         require(block.timestamp - _lastPauseCall >= _MIN_PAUSE_DURATION, "Pool must be paused for at least 7 days");
+        require(isPoolPaused(), "Pool must be paused to call rebalance");
 
         _enableSwaps();
 
@@ -74,7 +75,7 @@ contract EBURebalancerController {
     }
 
     function pausePool() public {
-        require(block.timestamp >= _lastRebalanceCall + _REBALANCE_DURATION, "Pool is still rebalancing");
+        require(block.timestamp - _lastRebalanceCall >= _REBALANCE_DURATION, "Pool is still rebalancing");
         require(!isPoolPaused(), "Swaps are already paused");
 
         _getPool().setSwapEnabled(false);

@@ -49,7 +49,7 @@ async function deployController(deployer: SignerWithAddress): Promise<Contract> 
   const receipt = await (await mpcFactory.connect(deployer).create(newPoolParams)).wait();
   const eventController = expectEvent.inReceipt(receipt, 'ControllerCreated');
 
-  return ethers.getContractAt('EBURebalancerController', eventController.args.controller);
+  return ethers.getContractAt('EbuRebalancerController', eventController.args.controller);
 }
 
 async function fastForward(sec: number) {
@@ -85,7 +85,7 @@ async function deployLocalContract(contract: string, deployer: SignerWithAddress
   return instance;
 }
 
-describe('EBURebalancerController', () => {
+describe('EbuRebalancerController', () => {
   let vault: Contract;
   let tokens: TokenList;
 
@@ -117,7 +117,7 @@ describe('EBURebalancerController', () => {
     );
 
     const controllerFactoryArgs = [vault.address, mpFactory.address];
-    mpcFactory = await deployLocalContract('EBURebalancerControllerFactory', deployer, controllerFactoryArgs);
+    mpcFactory = await deployLocalContract('EbuRebalancerControllerFactory', deployer, controllerFactoryArgs);
   });
 
   describe('Controller Deployment', () => {
@@ -133,7 +133,7 @@ describe('EBURebalancerController', () => {
       const poolId = await ebuRebalancerController.getPoolId();
       const tokens = await ebuRebalancerController.getPoolTokens();
 
-      for (let i = 0;i < tokens.length;i++) {
+      for (let i = 0; i < tokens.length; i++) {
         const info = await vault.getPoolTokenInfo(poolId, tokens[i]);
         assert.equal(info.assetManager, ebuRebalancerController.address);
       }
@@ -174,7 +174,7 @@ describe('EBURebalancerController', () => {
       await fastForward(time.WEEK);
       await ebuRebalancerController.pausePool();
 
-      for (let i = 1;i <= intervals;i++) {
+      for (let i = 1; i <= intervals; i++) {
         await fastForward(timePerStep);
 
         if (i != intervals) {
@@ -193,7 +193,7 @@ describe('EBURebalancerController', () => {
       const timePerStep = time.MONTH / intervals;
       const pauseInterval = Math.ceil(intervals / 2);
 
-      for (let i = 1;i <= intervals;i++) {
+      for (let i = 1; i <= intervals; i++) {
         await fastForward(timePerStep);
         if (i != intervals) {
           await expect(ebuRebalancerController.rebalancePool()).to.be.revertedWith(
@@ -204,7 +204,6 @@ describe('EBURebalancerController', () => {
           if (i == pauseInterval) {
             await ebuRebalancerController.pausePool();
           }
-
         } else {
           const receipt = await (await ebuRebalancerController.rebalancePool()).wait();
           await expectEvent.inReceipt(receipt, 'PoolRebalancing');

@@ -29,7 +29,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
  * @notice Factory for a Managed Pool and EBURebalancer Controller.
  * @dev Determines controller deployment address, deploys pool (w/ controller address as argument), then controller.
  */
-contract EBURebalancerControllerFactory is Ownable {
+contract EbuRebalancerControllerFactory is Ownable {
     mapping(address => bool) public isControllerFromFactory;
 
     address public immutable managedPoolFactory;
@@ -67,14 +67,14 @@ contract EBURebalancerControllerFactory is Ownable {
         return _lastCreatedPool;
     }
 
-    function create(MinimalPoolParams memory minimalParams) external {
+    function create(MinimalPoolParams calldata minimalParams) external {
         _ensureEnabled();
 
         bytes32 controllerSalt = bytes32(_nextControllerSalt);
         _nextControllerSalt += 1;
 
         bytes memory controllerCreationCode = abi.encodePacked(
-            type(EBURebalancerController).creationCode,
+            type(EbuRebalancerController).creationCode,
             abi.encode(balancerVault, minimalParams.minSwapFeePercentage)
         );
         address expectedControllerAddress = Create2.computeAddress(controllerSalt, keccak256(controllerCreationCode));
