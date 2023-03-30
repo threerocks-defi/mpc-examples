@@ -182,7 +182,7 @@ describe('PauseUnpauseController', function () {
       });
       it('allows the controllerOwner to pause the pool', async () => {
         await localController.connect(controllerOwner).pausePool();
-        expect(await localController.getSwapEnabled()).to.equal(false);
+        expect(await localController.isPoolPaused()).to.equal(true);
         expect(await pool.getSwapEnabled()).to.equal(false);
       });
       it('disallows rando to pause the pool', async () => {

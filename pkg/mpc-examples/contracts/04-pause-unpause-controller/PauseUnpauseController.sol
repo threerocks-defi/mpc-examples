@@ -55,10 +55,6 @@ contract PauseUnpauseController is Ownable {
         return _vault;
     }
 
-    function getSwapEnabled() public view returns (bool) {
-        return _getPool().getSwapEnabled();
-    }
-
     function isPoolPaused() public view returns (bool) {
         return !_getPool().getSwapEnabled();
     }
@@ -69,7 +65,7 @@ contract PauseUnpauseController is Ownable {
      * @notice Disables swapping.
      */
     function pausePool() external onlyOwner returns (bool) {
-        require(getSwapEnabled(), "swapping with pool is already paused");
+        require(!isPoolPaused(), "swapping with pool is already paused");
         _getPool().setSwapEnabled(false);
         // pool is confirmed paused
         return true;
