@@ -34,7 +34,7 @@ contract NullControllerFactory is Ownable {
 
     address public immutable managedPoolFactory;
     IVault public immutable balancerVault;
-    bool public isDisabled;
+    bool private _disabled;
 
     uint256 private _nextControllerSalt;
     address private _lastCreatedPool;
@@ -72,8 +72,7 @@ contract NullControllerFactory is Ownable {
      * @dev Deploy a Managed Pool and a Controller.
      */
     function create(MinimalPoolParams calldata minimalParams) external {
-        require(!isDisabled, "Controller factory disabled");
-        require(!IManagedPoolFactory(managedPoolFactory).isDisabled(), "Pool factory disabled");
+        _ensureEnabled();
 
         bytes32 controllerSalt = bytes32(_nextControllerSalt);
         _nextControllerSalt += 1;
@@ -128,7 +127,30 @@ contract NullControllerFactory is Ownable {
      * be implemented to allow for different needs.
      */
     function disable() external onlyOwner {
-        isDisabled = true;
+        _ensureEnabled();
+        _disabled = true;
         emit Disabled();
+    }
+
+    /**
+     * @dev Query whether this controller factory is disabled.
+     */
+    function isDisabled() external view returns (bool) {
+        return _disabled || _isPoolFactoryDisabled();
+    }
+
+    /**
+     * @dev Query whether the pool factory is disabled.
+     */
+    function _isPoolFactoryDisabled() internal view returns (bool) {
+        return IManagedPoolFactory(managedPoolFactory).isDisabled();
+    }
+
+    /**
+     * @dev Revert if the factory is disabled.
+     */
+    function _ensureEnabled() internal view {
+        require(!_disabled, "Controller factory disabled");
+        require(!_isPoolFactoryDisabled(), "Pool factory disabled");
     }
 }
