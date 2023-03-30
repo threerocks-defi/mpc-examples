@@ -18,7 +18,7 @@ contract CrpController {
     IVault private immutable _vault;
     bytes32 private immutable _poolId;
     address private immutable _manager;
-    Rights private _rights;
+    mapping(CrpRight => bool) private _rights;
 
     // Define the CrpRights associated with each Right (must be parallel)
     enum CrpRight {
@@ -32,37 +32,25 @@ contract CrpController {
         SET_MUST_ALLOWLIST_LPS,
         SET_SWAP_ENABLED,
         UPDATE_SWAP_FEE_GRADUALLY,
-        UPDATE_WEIGHTS_GRADUALLY
+        UPDATE_WEIGHTS_GRADUALLY,
+        LENGTH // Using LENGTH since `type(<Enum>).max;` not implemented until 0.8.8
     }
 
-    // Set of flags indicating which rights have been reserved
-    // They can be set to false through `renouncePermission`, but
-    // never enabled after deployment
-    struct Rights {
-        bool addAllowedAddress;
-        bool addToken;
-        bool removeAllowedAddress;
-        bool removeToken;
-        bool setCircuitBreakers;
-        bool setJoinExitEnabled;
-        bool setManagementAumFeePercentage;
-        bool setMustAllowlistLPs;
-        bool setSwapEnabled;
-        bool updateSwapFeeGradually;
-        bool updateWeightsGradually;
-    }
 
     modifier onlyManager() {
         require(msg.sender == _manager, "Caller not manager");
         _;
     }
 
-    modifier hasRight(bool right) {
-        require(right, "Right not granted");
+    modifier hasRight(CrpRight right) {
+        require(_hasRight(right), "Right not granted");
         _;
     }
 
-    constructor(IVault vault, address manager, Rights memory rights) {
+    event AddRight(CrpRight);
+    event RemoveRight(CrpRight);
+
+    constructor(IVault vault, address manager, CrpRight[] memory rights) {
         // Get poolId from the factory
         bytes32 poolId = IManagedPool(ILastCreatedPoolFactory(msg.sender).getLastCreatedPool()).getPoolId();
 
@@ -73,76 +61,62 @@ contract CrpController {
         _vault = vault;
         _poolId = poolId;
         _manager = manager;
-        _rights = rights;
+
+        for (uint256 i = 0; i < rights.length; i++) {
+            _validateRight(rights[i]);
+            _rights[rights[i]] = true;
+            emit AddRight(rights[i]);
+        }
     }
 
-    function addAllowedAddress(address member) external onlyManager hasRight(_rights.addAllowedAddress) {
+    function addAllowedAddress(address member) external onlyManager hasRight(CrpRight.ADD_ALLOWED_ADDRESS) {
         _getPool().addAllowedAddress(member);
     }
 
-    function removeAllowedAddress(address member) external onlyManager hasRight(_rights.removeAllowedAddress) {
+    function removeAllowedAddress(address member) external onlyManager hasRight(CrpRight.REMOVE_ALLOWED_ADDRESS) {
         _getPool().removeAllowedAddress(member);
     }
 
-    function removeToken(IERC20 tokenToRemove, uint256 burnAmount, address sender) external onlyManager hasRight(_rights.removeToken) {
+    function addToken(IERC20 tokenToRemove, uint256 burnAmount, address sender) external onlyManager hasRight(CrpRight.ADD_TOKEN) {
         _getPool().removeToken(tokenToRemove, burnAmount, sender);
     }
 
-    function setCircuitBreakers(IERC20[] calldata tokens, uint256[] calldata bptPrices, uint256[] calldata lowerBoundPercentages, uint256[] calldata upperBoundPercentages) external onlyManager hasRight(_rights.setCircuitBreakers) {
+    function removeToken(IERC20 tokenToRemove, uint256 burnAmount, address sender) external onlyManager hasRight(CrpRight.REMOVE_TOKEN) {
+        _getPool().removeToken(tokenToRemove, burnAmount, sender);
+    }
+
+    function setCircuitBreakers(IERC20[] calldata tokens, uint256[] calldata bptPrices, uint256[] calldata lowerBoundPercentages, uint256[] calldata upperBoundPercentages) external onlyManager hasRight(CrpRight.SET_CIRCUIT_BREAKERS) {
         _getPool().setCircuitBreakers(tokens, bptPrices, lowerBoundPercentages, upperBoundPercentages);
     }
 
     // TODO: uncomment after new MP release adds this feature
-    // function setJoinExitEnabled(bool enabled) external onlyManager hasRight(_rights.setJoinExitEnabled) {
+    // function setJoinExitEnabled(bool enabled) external onlyManager hasRight(CrpRight.setJoinExitEnabled) {
     //     _getPool().setJoinExitEnabled(enabled);
     // }
 
-    function setManagementAumFeePercentage(uint256 managementAumFeePercentage) external onlyManager hasRight(_rights.setManagementAumFeePercentage) {
+    function setManagementAumFeePercentage(uint256 managementAumFeePercentage) external onlyManager hasRight(CrpRight.SET_MANAGEMENT_AUM_FEE_PERCENTAGE) {
         _getPool().setManagementAumFeePercentage(managementAumFeePercentage);
     }
 
-    function setMustAllowlistLPs(bool mustAllowlistLPs) external onlyManager hasRight(_rights.setMustAllowlistLPs) {
+    function setMustAllowlistLPs(bool mustAllowlistLPs) external onlyManager hasRight(CrpRight.SET_MUST_ALLOWLIST_LPS) {
         _getPool().setMustAllowlistLPs(mustAllowlistLPs);
     }
 
-    function setSwapEnabled(bool swapEnabled) external onlyManager hasRight(_rights.setSwapEnabled) {
+    function setSwapEnabled(bool swapEnabled) external onlyManager hasRight(CrpRight.SET_SWAP_ENABLED) {
         _getPool().setSwapEnabled(swapEnabled);
     }
 
-    function updateSwapFeeGradually(uint256 startTime, uint256 endTime, uint256 startSwapFeePercentage, uint256 endSwapFeePercentage) external onlyManager hasRight(_rights.updateSwapFeeGradually) {
+    function updateSwapFeeGradually(uint256 startTime, uint256 endTime, uint256 startSwapFeePercentage, uint256 endSwapFeePercentage) external onlyManager hasRight(CrpRight.UPDATE_SWAP_FEE_GRADUALLY) {
         _getPool().updateSwapFeeGradually(startTime, endTime, startSwapFeePercentage, endSwapFeePercentage);
     }
 
-    function updateWeightsGradually(uint256 startTime, uint256 endTime, IERC20[] calldata tokens, uint256[] calldata endWeights) external onlyManager hasRight(_rights.updateWeightsGradually) {
+    function updateWeightsGradually(uint256 startTime, uint256 endTime, IERC20[] calldata tokens, uint256[] calldata endWeights) external onlyManager hasRight(CrpRight.UPDATE_WEIGHTS_GRADUALLY) {
         _getPool().updateWeightsGradually(startTime, endTime, tokens, endWeights);
     }
 
     function renounceRight(CrpRight right) external onlyManager {
-        if (CrpRight.ADD_ALLOWED_ADDRESS == right) {
-            _rights.addAllowedAddress = false;
-        } else if (CrpRight.ADD_TOKEN == right) {
-            _rights.addToken = false;
-        } else if (CrpRight.REMOVE_ALLOWED_ADDRESS == right) {
-            _rights.removeAllowedAddress = false;
-        } else if (CrpRight.REMOVE_TOKEN == right) {
-            _rights.removeToken = false;
-        } else if (CrpRight.SET_CIRCUIT_BREAKERS == right) {
-            _rights.setCircuitBreakers = false;
-        } else if (CrpRight.SET_JOIN_EXIT_ENABLED == right) {
-            _rights.setJoinExitEnabled = false;
-        } else if (CrpRight.SET_MANAGEMENT_AUM_FEE_PERCENTAGE == right) {
-            _rights.setManagementAumFeePercentage = false;
-        } else if (CrpRight.SET_MUST_ALLOWLIST_LPS == right) {
-            _rights.setMustAllowlistLPs = false;
-        } else if (CrpRight.SET_SWAP_ENABLED == right) {
-            _rights.setSwapEnabled = false;
-        } else if (CrpRight.UPDATE_SWAP_FEE_GRADUALLY == right) {
-            _rights.updateSwapFeeGradually = false;
-        } else if (CrpRight.UPDATE_WEIGHTS_GRADUALLY == right) {
-            _rights.updateWeightsGradually = false;
-        } else {
-            revert("Invalid right");
-        }
+        _rights[right] = false;
+        emit RemoveRight(right);
     }
 
     function getPoolId() public view returns (bytes32) {
@@ -153,13 +127,36 @@ contract CrpController {
         return _vault;
     }
 
+    function hasRights(CrpRight right) external view returns(bool) {
+        return _hasRight(right);
+    }
+
+    function getAllRights() external view returns(bool[] memory) {
+
+        uint8 numRights = uint8(CrpRight.LENGTH);
+        // uint256 numRights = type(CrpRight).max;
+        //      not implemented until 0.8.8
+        //      https://blog.soliditylang.org/2021/09/27/solidity-0.8.8-release-announcement/
+
+        bool[] memory rights = new bool[](numRights);
+        for (uint8 i = 0; i < numRights; i++) {
+            rights[i] = _hasRight(CrpRight(i));
+        }
+        return rights;
+    }
+
     function _getPool() internal view returns (IManagedPool) {
         // 12 byte logical shift left to remove the nonce and specialization setting. We don't need to mask,
         // since the logical shift already sets the upper bits to zero.
         return IManagedPool(uint256(_poolId) >> (12 * 8));
     }
 
-    function getRights() external view returns(Rights memory) {
-        return _rights;
+    function _hasRight(CrpRight right) internal view returns(bool) {
+        return _rights[right];
     }
+
+    function _validateRight(CrpRight right) internal pure {
+        require(right < CrpRight.LENGTH, "Invalid right");
+    }
+
 }

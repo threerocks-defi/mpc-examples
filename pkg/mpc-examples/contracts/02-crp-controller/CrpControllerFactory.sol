@@ -39,7 +39,7 @@ contract CrpControllerFactory {
         return _lastCreatedPool;
     }
 
-    function create(IManagedPoolFactory.NewPoolParams memory params, address manager, CrpController.Rights calldata rights) external {
+    function create(IManagedPoolFactory.NewPoolParams memory params, address manager, CrpController.CrpRight[] calldata rights) external {
         if (!isDisabled) {
             bytes32 controllerSalt = bytes32(_nextControllerSalt);
             _nextControllerSalt += 1;
@@ -53,10 +53,18 @@ contract CrpControllerFactory {
                 keccak256(controllerCreationCode)
             );
 
+            bool usingAddRemoveToken;
+            for (uint256 i = 0; i < rights.length; i++) {
+                if (rights[i] == CrpController.CrpRight.ADD_TOKEN || rights[i] == CrpController.CrpRight.REMOVE_TOKEN) {
+                    usingAddRemoveToken = true;
+                    break;
+                }
+            }
+
             // build arguments to deploy pool from factory
             // only set controller as Asset Manager if it has add/remove rights
             address[] memory assetManagers = new address[](params.tokens.length);
-            if (rights.addToken || rights.removeToken){
+            if (usingAddRemoveToken) {
                 for (uint256 i = 0; i < assetManagers.length; i++) {
                     assetManagers[i] = expectedControllerAddress;
                 }    

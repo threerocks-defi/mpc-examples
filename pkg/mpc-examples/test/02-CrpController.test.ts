@@ -51,6 +51,22 @@ async function deployController(deployer: SignerWithAddress, args: unknown[]): P
   return ethers.getContractAt('CrpController', eventController.args.controller);
 }
 
+async function failTodeployController(deployer: SignerWithAddress, args: unknown[]): Promise<Contract> {
+  const newPoolParams = {
+    name: 'MyTestPool',
+    symbol: 'MTP',
+    tokens: tokenAddresses,
+    normalizedWeights: initialWeights,
+    assetManagers: [ZERO_ADDRESS, ZERO_ADDRESS], // this will be overwritten in the MPC factory
+    swapFeePercentage: swapFeePercentage,
+    swapEnabledOnStart: true,
+    mustAllowlistLPs: false, // this will be overwritten in the MPC factory
+    managementAumFeePercentage: fp(0.1),
+    aumFeeId: 0,
+  };
+  expect(await (await mpcFactory.connect(deployer).create(newPoolParams, ...args)).wait()).to.be.revertedWith('CREATE2_DEPLOY_FAILED');
+}
+
 async function deployBalancerManagedPoolFactory(
   task: string,
   libNames: string[],
@@ -76,6 +92,21 @@ async function deployLocalContract(contract: string, deployer: SignerWithAddress
   const c = await Controller.connect(deployer).deploy(...args);
   const instance: Contract = await c.deployed();
   return instance;
+}
+
+enum CrpRight {
+  ADD_ALLOWED_ADDRESS,
+  ADD_TOKEN,
+  REMOVE_ALLOWED_ADDRESS,
+  REMOVE_TOKEN,
+  SET_CIRCUIT_BREAKERS,
+  SET_JOIN_EXIT_ENABLED,
+  SET_MANAGEMENT_AUM_FEE_PERCENTAGE,
+  SET_MUST_ALLOWLIST_LPS,
+  SET_SWAP_ENABLED,
+  UPDATE_SWAP_FEE_GRADUALLY,
+  UPDATE_WEIGHTS_GRADUALLY,
+  LENGTH // Using LENGTH since `type(<Enum>).max;` not implemented until 0.8.8
 }
 
 describe.only('CrpController', function () {
@@ -113,150 +144,104 @@ describe.only('CrpController', function () {
   describe('Validate Controller Deployment', () => {
     let localController: Contract;
     beforeEach('deploy', async () => {
-      const noRights = {
-        addAllowedAddress: false,
-        addToken: false,
-        removeAllowedAddress: false,
-        removeToken: false,
-        setCircuitBreakers: false,
-        setJoinExitEnabled: false,
-        setManagementAumFeePercentage: false,
-        setMustAllowlistLPs: false,
-        setSwapEnabled: false,
-        updateSwapFeeGradually: false,
-        updateWeightsGradually: false
-      }
-      const args = [manager.address, noRights];
+      const rights = [];
+      const args = [manager.address, rights];
       localController = await deployController(deployer, args);
     });
-
     it("Local Controller's Vault is the Vault", async () => {
       assert.equal(vault.address, await localController.getVault());
     });
   });
 
-  describe('Controller is only Asset Manager if it has add/remove rights', () => {
-    it("No add/remove rights: AM=address(0)", async () => {
-      let localController: Contract;
-      const rights = {
-        addAllowedAddress: false,
-        addToken: false,
-        removeAllowedAddress: false,
-        removeToken: false,
-        setCircuitBreakers: false,
-        setJoinExitEnabled: false,
-        setManagementAumFeePercentage: false,
-        setMustAllowlistLPs: false,
-        setSwapEnabled: false,
-        updateSwapFeeGradually: false,
-        updateWeightsGradually: false
-      }
+  describe('Deploy a controller with all rights', () => {
+    let localController: Contract;
+    it('deploy with all rights', async () => {
+      const rights = [CrpRight.ADD_ALLOWED_ADDRESS, CrpRight.ADD_TOKEN, CrpRight.REMOVE_ALLOWED_ADDRESS, CrpRight.REMOVE_TOKEN, CrpRight.SET_CIRCUIT_BREAKERS, CrpRight.SET_JOIN_EXIT_ENABLED, CrpRight.SET_MANAGEMENT_AUM_FEE_PERCENTAGE, CrpRight.SET_MUST_ALLOWLIST_LPS, CrpRight.SET_SWAP_ENABLED, CrpRight.UPDATE_SWAP_FEE_GRADUALLY, CrpRight.UPDATE_WEIGHTS_GRADUALLY];
       const args = [manager.address, rights];
       localController = await deployController(deployer, args);
-      
-      const poolId = await localController.getPoolId();
-      for (let i = 0; i < tokenAddresses.length; i++) {
-        const info = await vault.getPoolTokenInfo(poolId, tokenAddresses[i]);
-        assert.equal(info.assetManager, ZERO_ADDRESS);
-        assert.notEqual(info.assetManager, localController.address);
+      const queriedRights = await localController.getAllRights();
+
+      // make sure that every right we put in comes out as true
+      for (var i = 0; i < rights.length; i++) {
+        assert(queriedRights[rights[i]]);
       }
     });
-
-    it("Only add rights: AM=controller", async () => {
-      let localController: Contract;
-      const rights = {
-        addAllowedAddress: false,
-        addToken: true,
-        removeAllowedAddress: false,
-        removeToken: false,
-        setCircuitBreakers: false,
-        setJoinExitEnabled: false,
-        setManagementAumFeePercentage: false,
-        setMustAllowlistLPs: false,
-        setSwapEnabled: false,
-        updateSwapFeeGradually: false,
-        updateWeightsGradually: false
-      }
+    it('Deploy a controller with CrpRight.LENGTH (invalid) as a right', async () => {
+      const rights = [CrpRight.ADD_ALLOWED_ADDRESS, CrpRight.ADD_TOKEN, CrpRight.REMOVE_ALLOWED_ADDRESS, CrpRight.REMOVE_TOKEN, CrpRight.SET_CIRCUIT_BREAKERS, CrpRight.SET_JOIN_EXIT_ENABLED, CrpRight.SET_MANAGEMENT_AUM_FEE_PERCENTAGE, CrpRight.SET_MUST_ALLOWLIST_LPS, CrpRight.SET_SWAP_ENABLED, CrpRight.UPDATE_SWAP_FEE_GRADUALLY, CrpRight.UPDATE_WEIGHTS_GRADUALLY, CrpRight.LENGTH];
       const args = [manager.address, rights];
-      localController = await deployController(deployer, args);
-      
-      const poolId = await localController.getPoolId();
-      for (let i = 0; i < tokenAddresses.length; i++) {
-        const info = await vault.getPoolTokenInfo(poolId, tokenAddresses[i]);
-        assert.notEqual(info.assetManager, ZERO_ADDRESS);
-        assert.equal(info.assetManager, localController.address);
-      }
+      failTodeployController(deployer, args);
     });
-
-    it("Only remove rights: AM=controller", async () => {
-      let localController: Contract;
-      const rights = {
-        addAllowedAddress: false,
-        addToken: false,
-        removeAllowedAddress: false,
-        removeToken: true,
-        setCircuitBreakers: false,
-        setJoinExitEnabled: false,
-        setManagementAumFeePercentage: false,
-        setMustAllowlistLPs: false,
-        setSwapEnabled: false,
-        updateSwapFeeGradually: false,
-        updateWeightsGradually: false
-      }
+    it('Deploy a controller with a large enum as a right (>CrpRight.LENGTH)', async () => {
+      const rights = [CrpRight.LENGTH + 5];
       const args = [manager.address, rights];
-      localController = await deployController(deployer, args);
-      
-      const poolId = await localController.getPoolId();
-      for (let i = 0; i < tokenAddresses.length; i++) {
-        const info = await vault.getPoolTokenInfo(poolId, tokenAddresses[i]);
-        assert.notEqual(info.assetManager, ZERO_ADDRESS);
-        assert.equal(info.assetManager, localController.address);
-      }
+      failTodeployController(deployer, args);
     });
+  });
 
-    it("Both add and remove rights: AM=controller", async () => {
-      let localController: Contract;
-      const rights = {
-        addAllowedAddress: false,
-        addToken: true,
-        removeAllowedAddress: false,
-        removeToken: true,
-        setCircuitBreakers: false,
-        setJoinExitEnabled: false,
-        setManagementAumFeePercentage: false,
-        setMustAllowlistLPs: false,
-        setSwapEnabled: false,
-        updateSwapFeeGradually: false,
-        updateWeightsGradually: false
-      }
-      const args = [manager.address, rights];
-      localController = await deployController(deployer, args);
-      
-      const poolId = await localController.getPoolId();
-      for (let i = 0; i < tokenAddresses.length; i++) {
-        const info = await vault.getPoolTokenInfo(poolId, tokenAddresses[i]);
-        assert.notEqual(info.assetManager, ZERO_ADDRESS);
-        assert.equal(info.assetManager, localController.address);
-      }
+  describe('Add/Remove Rights', () => {
+    describe('Controller is only Asset Manager if it has add/remove rights', () => {
+      it("No add/remove rights: AM=address(0)", async () => {
+        let localController: Contract;
+        const rights = [];
+        const args = [manager.address, rights];
+        localController = await deployController(deployer, args);
+
+        const poolId = await localController.getPoolId();
+        for (let i = 0; i < tokenAddresses.length; i++) {
+          const info = await vault.getPoolTokenInfo(poolId, tokenAddresses[i]);
+          assert.equal(info.assetManager, ZERO_ADDRESS);
+          assert.notEqual(info.assetManager, localController.address);
+        }
+      });
+
+      it("Only add rights: AM=controller", async () => {
+        let localController: Contract;
+        const rights = [CrpRight.ADD_TOKEN];
+        const args = [manager.address, rights];
+        localController = await deployController(deployer, args);
+
+        const poolId = await localController.getPoolId();
+        for (let i = 0; i < tokenAddresses.length; i++) {
+          const info = await vault.getPoolTokenInfo(poolId, tokenAddresses[i]);
+          assert.notEqual(info.assetManager, ZERO_ADDRESS);
+          assert.equal(info.assetManager, localController.address);
+        }
+      });
+
+      it("Only remove rights: AM=controller", async () => {
+        let localController: Contract;
+        const rights = [CrpRight.REMOVE_TOKEN];
+        const args = [manager.address, rights];
+        localController = await deployController(deployer, args);
+
+        const poolId = await localController.getPoolId();
+        for (let i = 0; i < tokenAddresses.length; i++) {
+          const info = await vault.getPoolTokenInfo(poolId, tokenAddresses[i]);
+          assert.notEqual(info.assetManager, ZERO_ADDRESS);
+          assert.equal(info.assetManager, localController.address);
+        }
+      });
+
+      it("Both add and remove rights: AM=controller", async () => {
+        let localController: Contract;
+        const rights = [CrpRight.ADD_TOKEN, CrpRight.REMOVE_TOKEN];
+        const args = [manager.address, rights];
+        localController = await deployController(deployer, args);
+
+        const poolId = await localController.getPoolId();
+        for (let i = 0; i < tokenAddresses.length; i++) {
+          const info = await vault.getPoolTokenInfo(poolId, tokenAddresses[i]);
+          assert.notEqual(info.assetManager, ZERO_ADDRESS);
+          assert.equal(info.assetManager, localController.address);
+        }
+      });
     });
   });
   describe('Liquidity Provider Allowlist Validation (setMustAllowlistLPs = true)', () => {
     describe("addAllowedAddress = false, removeAllowedAddress = false", async () => {
       let localController: Contract;
       before('deploy controller', async () => {
-        const rights = {
-          addAllowedAddress: true,
-          addToken: false,
-          removeAllowedAddress: false,
-          removeToken: false,
-          setCircuitBreakers: false,
-          setJoinExitEnabled: false,
-          setManagementAumFeePercentage: false,
-          setMustAllowlistLPs: true,
-          setSwapEnabled: false,
-          updateSwapFeeGradually: false,
-          updateWeightsGradually: false
-        }
+        const rights = [CrpRight.SET_MUST_ALLOWLIST_LPS];
         const args = [manager.address, rights];
         localController = await deployController(deployer, args);
       });
@@ -270,19 +255,7 @@ describe.only('CrpController', function () {
     describe("addAllowedAddress = true, removeAllowedAddress = false", async () => {
       let localController: Contract;
       before('deploy controller', async () => {
-        const rights = {
-          addAllowedAddress: true,
-          addToken: false,
-          removeAllowedAddress: false,
-          removeToken: false,
-          setCircuitBreakers: false,
-          setJoinExitEnabled: false,
-          setManagementAumFeePercentage: false,
-          setMustAllowlistLPs: true,
-          setSwapEnabled: false,
-          updateSwapFeeGradually: false,
-          updateWeightsGradually: false
-        }
+        const rights = [CrpRight.SET_MUST_ALLOWLIST_LPS, CrpRight.ADD_ALLOWED_ADDRESS];
         const args = [manager.address, rights];
         localController = await deployController(deployer, args);
       });
@@ -296,19 +269,7 @@ describe.only('CrpController', function () {
     describe("addAllowedAddress = true, removeAllowedAddress = true", async () => {
       let localController: Contract;
       before('deploy controller', async () => {
-        const rights = {
-          addAllowedAddress: true,
-          addToken: false,
-          removeAllowedAddress: true,
-          removeToken: false,
-          setCircuitBreakers: false,
-          setJoinExitEnabled: false,
-          setManagementAumFeePercentage: false,
-          setMustAllowlistLPs: true,
-          setSwapEnabled: false,
-          updateSwapFeeGradually: false,
-          updateWeightsGradually: false
-        }
+        const rights = [CrpRight.SET_MUST_ALLOWLIST_LPS, CrpRight.ADD_ALLOWED_ADDRESS, CrpRight.REMOVE_ALLOWED_ADDRESS];
         const args = [manager.address, rights];
         localController = await deployController(deployer, args);
       });
@@ -322,19 +283,7 @@ describe.only('CrpController', function () {
     describe("addAllowedAddress = false, removeAllowedAddress = true", async () => {
       let localController: Contract;
       before('deploy controller', async () => {
-        const rights = {
-          addAllowedAddress: false,
-          addToken: false,
-          removeAllowedAddress: true,
-          removeToken: false,
-          setCircuitBreakers: false,
-          setJoinExitEnabled: false,
-          setManagementAumFeePercentage: false,
-          setMustAllowlistLPs: true,
-          setSwapEnabled: false,
-          updateSwapFeeGradually: false,
-          updateWeightsGradually: false
-        }
+        const rights = [CrpRight.SET_MUST_ALLOWLIST_LPS, CrpRight.REMOVE_ALLOWED_ADDRESS];
         const args = [manager.address, rights];
         localController = await deployController(deployer, args);
       });
@@ -343,6 +292,23 @@ describe.only('CrpController', function () {
       });
       it("Controller attempts to remove address, fails at pool b/c add failed", async () => {
         expect(localController.connect(manager).removeAllowedAddress(manager.address)).to.be.revertedWith('BAL#433');
+      });
+    });
+    describe("addAllowedAddress = true, removeAllowedAddress = true, but renounce addAllowedAddress after add", async () => {
+      let localController: Contract;
+      before('deploy controller', async () => {
+        const rights = [CrpRight.SET_MUST_ALLOWLIST_LPS, CrpRight.ADD_ALLOWED_ADDRESS, CrpRight.REMOVE_ALLOWED_ADDRESS];
+        const args = [manager.address, rights];
+        localController = await deployController(deployer, args);
+      });
+      it("Able to add allowed address", async () => {
+        await localController.connect(manager).addAllowedAddress(manager.address);
+      });
+      it("Renounce ADD_ALLOWED_ADDRESS", async () => {
+        await localController.connect(manager).renounceRight(CrpRight.ADD_ALLOWED_ADDRESS);
+      });
+      it("Able to remove allowed address", async () => {
+        await localController.connect(manager).removeAllowedAddress(manager.address);
       });
     });
   });
