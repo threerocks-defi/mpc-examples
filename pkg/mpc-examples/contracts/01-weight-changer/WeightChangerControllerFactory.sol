@@ -68,7 +68,7 @@ contract WeightChangerControllerFactory is Ownable {
         return _lastCreatedPool;
     }
 
-    function create(MinimalPoolParams memory minimalParams) external {
+    function create(MinimalPoolParams calldata minimalParams) external {
         _ensureEnabled();
 
         bytes32 controllerSalt = bytes32(_nextControllerSalt);
@@ -129,10 +129,23 @@ contract WeightChangerControllerFactory is Ownable {
         emit Disabled();
     }
 
-    function isDisabled() public view returns (bool) {
-        return _disabled;
+    /**
+     * @dev Query whether this controller factory is disabled.
+     */
+    function isDisabled() external view returns (bool) {
+        return _disabled || _isPoolFactoryDisabled();
     }
 
+    /**
+     * @dev Query whether the pool factory is disabled.
+     */
+    function _isPoolFactoryDisabled() internal view returns (bool) {
+        return IManagedPoolFactory(managedPoolFactory).isDisabled();
+    }
+
+    /**
+     * @dev Revert if the factory is disabled.
+     */
     function _ensureEnabled() internal view {
         require(!isDisabled(), "Controller factory disabled");
         require(!IManagedPoolFactory(managedPoolFactory).isDisabled(), "Pool factory disabled");
