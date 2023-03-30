@@ -8,6 +8,7 @@ import * as expectEvent from '@orbcollective/shared-dependencies/expectEvent';
 
 import { TokenList, setupEnvironment, pickTokenAddresses } from '@orbcollective/shared-dependencies';
 import { toNormalizedWeights } from '@balancer-labs/balancer-js';
+import { BigNumber } from 'ethers';
 
 export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
@@ -15,6 +16,7 @@ let deployer: SignerWithAddress, rando: SignerWithAddress;
 let controllerOwner: SignerWithAddress;
 let mpcFactory: Contract;
 let tokenAddresses: string[];
+const endSwapFeePercentage = bn(3e15);
 
 const initialWeights = toNormalizedWeights([fp(30), fp(70)]);
 const swapFeePercentage = bn(0.3e16);
@@ -31,7 +33,11 @@ async function deployBalancerContract(
   return contract;
 }
 
-async function deployController(deployer: SignerWithAddress, controllerOwner: SignerWithAddress): Promise<Contract> {
+async function deployController(
+  deployer: SignerWithAddress,
+  controllerOwner: SignerWithAddress,
+  endSwapFeePercentage: BigNumber
+): Promise<Contract> {
   const newPoolParams = {
     name: 'MyTestPool',
     symbol: 'MTP',
@@ -45,7 +51,9 @@ async function deployController(deployer: SignerWithAddress, controllerOwner: Si
     aumFeeId: 0,
   };
 
-  const receipt = await (await mpcFactory.connect(deployer).create(newPoolParams, controllerOwner.address)).wait();
+  const receipt = await (
+    await mpcFactory.connect(deployer).create(newPoolParams, controllerOwner.address, endSwapFeePercentage)
+  ).wait();
   const eventController = expectEvent.inReceipt(receipt, 'ControllerCreated');
 
   return ethers.getContractAt('PauseUnpauseController', eventController.args.controller);
@@ -121,7 +129,7 @@ describe('PauseUnpauseController', function () {
     let pool: Contract;
 
     beforeEach('deploy', async () => {
-      localController = await deployController(deployer, controllerOwner);
+      localController = await deployController(deployer, controllerOwner, endSwapFeePercentage);
       pool = await getManagedPoolContract(localController);
     });
 
@@ -159,6 +167,13 @@ describe('PauseUnpauseController', function () {
 
     it('stores the last created pool', async () => {
       expect(await mpcFactory.getLastCreatedPool()).to.equal(pool.address);
+    });
+
+    it('sets the _END_SWAP_FEE_PERCENTAGE as gradualSwapFeeUpdateParams', async () => {
+      await localController.connect(controllerOwner).pausePool();
+      await localController.connect(controllerOwner).unpausePool(true);
+
+      expect((await pool.getGradualSwapFeeUpdateParams())['endSwapFeePercentage']).to.be.equal(endSwapFeePercentage);
     });
 
     describe('Controller access control', async () => {
@@ -201,10 +216,10 @@ describe('PauseUnpauseController', function () {
       });
 
       it('Owner can disable the factory', async () => {
-        await deployController(deployer, controllerOwner);
+        await deployController(deployer, controllerOwner, endSwapFeePercentage);
         await mpcFactory.connect(deployer).disable();
         expect(await mpcFactory.isDisabled()).to.be.true;
-        await expect(deployController(deployer, controllerOwner)).to.be.revertedWith('Controller factory is disabled');
+        await expect(deployController(deployer, controllerOwner, endSwapFeePercentage)).to.be.revertedWith('Controller factory is disabled');
       });
     });
   });

@@ -21,14 +21,14 @@ import "@balancer-labs/v2-interfaces/contracts/pool-utils/IManagedPool.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract PauseUnpauseController is Ownable {
-    uint256 private constant _END_SWAP_FEE_PERCENTAGE = 3e15;
-    uint256 private constant _START_SWAP_FEE_PERCENTAGE = 95e16;
-    uint256 private constant _SWAP_FEE_REDUCATION_DURATION = 3 days;
+    uint256 private immutable _END_SWAP_FEE_PERCENTAGE;
 
+    uint256 private constant _MAX_SWAP_FEE_PERCENTAGE = 95e16;
+    uint256 private constant _REBALANCE_DURATION = 3 days;
     IVault private _vault;
     bytes32 private _poolId;
 
-    constructor(IVault vault, address controllerOwner) {
+    constructor(IVault vault, address controllerOwner, uint256 endSwapFeePercentage) {
         // Get poolId from the factory.
         bytes32 poolId = IManagedPool(ILastCreatedPoolFactory(msg.sender).getLastCreatedPool()).getPoolId();
 
@@ -38,6 +38,8 @@ contract PauseUnpauseController is Ownable {
         // store Vault and PoolId.
         _poolId = poolId;
         _vault = vault;
+
+        _END_SWAP_FEE_PERCENTAGE = endSwapFeePercentage;
 
         // Transfer ownership from factory to manager.
         transferOwnership(controllerOwner);
@@ -78,7 +80,7 @@ contract PauseUnpauseController is Ownable {
      * @dev A safe unpause is desirable as the market likely had price movements
      * which have not been reflected in a paused pool. In order to not leak too much
      * arbitrage losses, the controller adjusts swap fees of the managed pool to
-     * _START_SWAP_FEE_PERCENTAGE instantly and let's the market bring the pool back
+     * _MAX_SWAP_FEE_PERCENTAGE instantly and let's the market bring the pool back
      * into balance via minimal viable arbitrage.
      * @param shouldSafeUnpause Decision to safely unpause the pool.
      */
@@ -88,8 +90,8 @@ contract PauseUnpauseController is Ownable {
         if (shouldSafeUnpause) {
             _getPool().updateSwapFeeGradually(
                 block.timestamp,
-                block.timestamp + _SWAP_FEE_REDUCATION_DURATION,
-                _START_SWAP_FEE_PERCENTAGE,
+                block.timestamp + _REBALANCE_DURATION,
+                _MAX_SWAP_FEE_PERCENTAGE,
                 _END_SWAP_FEE_PERCENTAGE
             );
             // Enabling swaps again after having updated the swap fee gradually is fine

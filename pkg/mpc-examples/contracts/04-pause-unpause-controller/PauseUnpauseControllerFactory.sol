@@ -75,7 +75,7 @@ contract PauseUnpauseControllerFactory is Ownable {
 
     /// === Setters === ///
 
-    function create(MinimalPoolParams calldata minimalParams, address controllerOwner) external {
+    function create(MinimalPoolParams calldata minimalParams, address controllerOwner, uint256 endSwapFeePercentage) external {
         // checks
         _ensureEnabled();
 
@@ -84,7 +84,7 @@ contract PauseUnpauseControllerFactory is Ownable {
 
         bytes memory controllerCreationCode = abi.encodePacked(
             type(PauseUnpauseController).creationCode,
-            abi.encode(balancerVault, controllerOwner) //constructor args
+            abi.encode(balancerVault, controllerOwner, endSwapFeePercentage) //constructor args
         );
 
         address expectedControllerAddress = Create2.computeAddress(controllerSalt, keccak256(controllerCreationCode));
