@@ -11,6 +11,7 @@ This repository contains simplified examples of possible functionality in a Mana
 | Number | Controller      | Description |
 | ----------- | ----------- | ----------- |
 | 00 | [NullController](./pkg/mpc-examples/contracts/00-null-controller/README.md) | Empty controller that does nothing |
+| 01 | [WeightChangerController](./pkg/mpc-examples/contracts/01-weight-changer/README.md) | Controller that allows users to gradually update token weights |
 
 ## Build and Test
 
