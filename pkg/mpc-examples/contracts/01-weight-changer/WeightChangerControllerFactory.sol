@@ -132,7 +132,7 @@ contract WeightChangerControllerFactory is Ownable {
     /**
      * @dev Query whether this controller factory is disabled.
      */
-    function isDisabled() external view returns (bool) {
+    function isDisabled() public view returns (bool) {
         return _disabled || _isPoolFactoryDisabled();
     }
 
