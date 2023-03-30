@@ -132,7 +132,7 @@ contract WeightChangerControllerFactory is Ownable {
     /**
      * @dev Query whether this controller factory is disabled.
      */
-    function isDisabled() public view returns (bool) {
+    function isDisabled() external view returns (bool) {
         return _disabled || _isPoolFactoryDisabled();
     }
 
@@ -147,7 +147,7 @@ contract WeightChangerControllerFactory is Ownable {
      * @dev Revert if the factory is disabled.
      */
     function _ensureEnabled() internal view {
-        require(!isDisabled(), "Controller factory disabled");
+        require(!_disabled, "Controller factory disabled");
         require(!IManagedPoolFactory(managedPoolFactory).isDisabled(), "Pool factory disabled");
     }
 }
