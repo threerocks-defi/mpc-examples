@@ -128,12 +128,25 @@ contract EBURebalancerControllerFactory is Ownable {
         emit Disabled();
     }
 
+    /**
+     * @dev Query whether this controller factory is disabled.
+     */
     function isDisabled() public view returns (bool) {
         return _disabled;
     }
 
+    /**
+     * @dev Query whether the pool factory is disabled.
+     */
+    function _isPoolFactoryDisabled() internal view returns (bool) {
+        return IManagedPoolFactory(managedPoolFactory).isDisabled();
+    }
+
+    /**
+     * @dev Revert if the factory is disabled.
+     */
     function _ensureEnabled() internal view {
-        require(!isDisabled(), "Controller factory disabled");
-        require(!IManagedPoolFactory(managedPoolFactory).isDisabled(), "Pool factory disabled");
+        require(!_disabled, "Controller factory disabled");
+        require(!_isPoolFactoryDisabled(), "Pool factory disabled");
     }
 }

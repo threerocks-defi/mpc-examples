@@ -8,10 +8,10 @@
 This repository contains simplified examples of possible functionality in a Managed Pool Controller. These controllers are provided as examples for informational purposes only and have not been audited.
 
 # Controllers
-| Number | Controller      | Description |
-| ----------- | ----------- | ----------- |
-| 00 | [NullController](./pkg/mpc-examples/contracts/00-null-controller/README.md) | Empty controller that does nothing |
-| 03 | [EBURebalancerController](./pkg/mpc-examples/contracts/03-ebu-rebalancer/README.md) | Controller that allows users to rebalance a managed pool as well as pause swaps |
+| Number | Controller      | Description                                                              |
+| ----------- | ----------- |--------------------------------------------------------------------------|
+| 00 | [NullController](./pkg/mpc-examples/contracts/00-null-controller/README.md) | Empty controller that does nothing                                       |
+| 03 | [EBURebalancerController](./pkg/mpc-examples/contracts/03-ebu-rebalancer/README.md) | Controller that allows users to rebalance a managed pool and pause swaps |
 
 ## Build and Test
 
