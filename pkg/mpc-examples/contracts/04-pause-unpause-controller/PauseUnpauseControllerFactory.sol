@@ -63,11 +63,6 @@ contract PauseUnpauseControllerFactory is Ownable {
         balancerVault = vault;
     }
 
-    /// === Getters === ///
-
-    function isDisabled() public view returns (bool) {
-        return _disabled;
-    }
 
     function getLastCreatedPool() external view returns (address) {
         return _lastCreatedPool;
@@ -141,5 +136,13 @@ contract PauseUnpauseControllerFactory is Ownable {
     function _ensureEnabled() internal view {
         require(!isDisabled(), "Controller factory is disabled");
         require(!managedPoolFactory.isDisabled(), "managed Pool factory disabled");
+    }
+
+    function isDisabled() public view returns (bool) {
+        return _disabled || _isPoolFactoryDisabled();
+    }
+
+    function _isPoolFactoryDisabled() internal view returns (bool) {
+        return managedPoolFactory.isDisabled();
     }
 }
