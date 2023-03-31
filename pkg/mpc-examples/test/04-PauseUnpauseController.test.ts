@@ -10,11 +10,15 @@ import { TokenList, setupEnvironment, pickTokenAddresses } from '@orbcollective/
 import { toNormalizedWeights } from '@balancer-labs/balancer-js';
 import { BigNumber } from 'ethers';
 
-export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+import { actionId } from '@orbcollective/shared-dependencies/test-helpers/actions';
+
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 let deployer: SignerWithAddress, rando: SignerWithAddress;
+let admin: SignerWithAddress;
 let controllerOwner: SignerWithAddress;
 let mpcFactory: Contract;
+let mpFactory: Contract;
 let tokenAddresses: string[];
 const endSwapFeePercentage = bn(3e15);
 
@@ -92,7 +96,7 @@ describe('PauseUnpauseController', function () {
   before('Setup', async () => {
     let trader: SignerWithAddress;
     let liquidityProvider: SignerWithAddress;
-    ({ vault, tokens, deployer, liquidityProvider, trader } = await setupEnvironment());
+    ({ vault, tokens, deployer, liquidityProvider, trader, admin } = await setupEnvironment());
     rando = trader;
     controllerOwner = liquidityProvider;
 
@@ -110,7 +114,7 @@ describe('PauseUnpauseController', function () {
     const libNames = ['CircuitBreakerLib', 'ManagedPoolAddRemoveTokenLib'];
     const factoryContract = 'ManagedPoolFactory';
     const poolFactoryArgs = [vault.address, protocolFeesProvider.address];
-    const mpFactory = await deployBalancerManagedPoolFactory(
+    mpFactory = await deployBalancerManagedPoolFactory(
       factoryTask,
       libNames,
       factoryContract,
@@ -139,6 +143,16 @@ describe('PauseUnpauseController', function () {
       const managedPoolAbi = await getBalancerContractAbi('deprecated/20221021-managed-pool', 'ManagedPool');
       const managedPool = new ethers.Contract(poolAddress, managedPoolAbi, deployer);
       return managedPool;
+    }
+
+    async function getManagedPoolFactoryContract(localControllerFactory: Contract): Promise<Contract> {
+      const mpFactoryAddress = localControllerFactory.managedPoolFactory();
+      const managedPoolFactoryAbi = await getBalancerContractAbi(
+        'deprecated/20221021-managed-pool',
+        'ManagedPoolFactory'
+      );
+      const mpFactory = await ethers.getContractAt(managedPoolFactoryAbi, mpFactoryAddress);
+      return mpFactory;
     }
 
     it('sets the controller address as owner', async () => {
@@ -171,7 +185,7 @@ describe('PauseUnpauseController', function () {
 
     it('sets the _END_SWAP_FEE_PERCENTAGE as gradualSwapFeeUpdateParams', async () => {
       await localController.connect(controllerOwner).pausePool();
-      await localController.connect(controllerOwner).unpausePool(true);
+      await localController.connect(controllerOwner).safeUnpausePool();
 
       expect((await pool.getGradualSwapFeeUpdateParams())['endSwapFeePercentage']).to.be.equal(endSwapFeePercentage);
     });
@@ -191,20 +205,23 @@ describe('PauseUnpauseController', function () {
       it('allows the controllerOwner to safely unpause the pool', async () => {
         const swapFeeParamsBefore = await pool.getGradualSwapFeeUpdateParams();
         await localController.connect(controllerOwner).pausePool();
-        await localController.connect(controllerOwner).unpausePool(true);
+        await localController.connect(controllerOwner).safeUnpausePool();
 
         expect(await pool.getSwapEnabled()).to.be.true;
         expect(swapFeeParamsBefore === (await pool.getGradualSwapFeeUpdateParams())).to.be.false;
       });
 
-      it('allows the controllerOwner to unsafely unpause the pool', async () => {
+      it('allows the controllerOwner to dangerously unpause the pool', async () => {
         await localController.connect(controllerOwner).pausePool();
-        await localController.connect(controllerOwner).unpausePool(false);
+        await localController.connect(controllerOwner).dangrousUnpausePool();
         expect(await pool.getSwapEnabled()).to.be.true;
       });
       it('disallows the rando to unpause the pool', async () => {
         await localController.connect(controllerOwner).pausePool();
-        await expect(localController.connect(rando).unpausePool(false)).to.be.revertedWith(
+        await expect(localController.connect(rando).safeUnpausePool()).to.be.revertedWith(
+          'Ownable: caller is not the owner'
+        );
+        await expect(localController.connect(rando).dangrousUnpausePool()).to.be.revertedWith(
           'Ownable: caller is not the owner'
         );
       });
@@ -219,8 +236,35 @@ describe('PauseUnpauseController', function () {
         await deployController(deployer, controllerOwner, endSwapFeePercentage);
         await mpcFactory.connect(deployer).disable();
         expect(await mpcFactory.isDisabled()).to.be.true;
-        await expect(deployController(deployer, controllerOwner, endSwapFeePercentage)).to.be.revertedWith('Controller factory is disabled');
+        await expect(deployController(deployer, controllerOwner, endSwapFeePercentage)).to.be.revertedWith(
+          'Controller factory is disabled'
+        );
       });
+    });
+  });
+
+  describe('Factory disabled conditional', () => {
+    // the Controller Factory is disabled in the previous test
+    // the Managed Pool Factory is still active
+    // deploy a new localController Factory & deactive
+    // the Managed Pool Factory afterwards to test the
+    it('checks conditional', async () => {
+      const localControllerFactory = await deployLocalContract('PauseUnpauseControllerFactory', deployer, [
+        vault.address,
+        mpFactory.address,
+      ]);
+
+      expect(await localControllerFactory.isDisabled()).to.be.false;
+      expect(await mpFactory.isDisabled()).to.be.false;
+
+      // grant admin the role via the authorizer to disable the Managed Pool factory
+      const authorizerArtifact = await getBalancerContractArtifact('20210418-authorizer', 'Authorizer');
+      const authorizer = await ethers.getContractAt(authorizerArtifact.abi, await vault.getAuthorizer());
+      const aId = actionId(mpFactory, 'disable');
+      await authorizer.connect(admin).grantRole(aId, admin.address);
+      await mpFactory.connect(admin).disable();
+      expect(await mpFactory.isDisabled()).to.be.true;
+      expect(await localControllerFactory.isDisabled()).to.be.true;
     });
   });
 });

@@ -82,7 +82,7 @@ export async function setupEnvironment(): Promise<{
     await tokens[symbol].connect(trader).approve(vault.address, MaxUint256);
   }
 
-  return { vault, tokens, deployer, liquidityProvider, trader };
+  return { vault, tokens, deployer, liquidityProvider, trader, admin };
 }
 
 export function pickTokenAddresses(tokens: TokenList, size: number, offset?: number): string[] {
