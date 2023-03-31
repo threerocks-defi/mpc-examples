@@ -95,17 +95,22 @@ contract PauseUnpauseControllerFactory is Ownable {
             assetManagers[i] = expectedControllerAddress;
         }
 
+        // Populate IManagedPoolFactory.NewPoolParams with arguments from MinimalPoolParams and
+        // other arguments that this factory provides itself.
         IManagedPoolFactory.NewPoolParams memory fullParams;
         fullParams.name = minimalParams.name;
         fullParams.symbol = minimalParams.symbol;
         fullParams.tokens = minimalParams.tokens;
         fullParams.normalizedWeights = minimalParams.normalizedWeights;
+        // Asset Managers set to the controller address, not known by deployer until creation.
         fullParams.assetManagers = assetManagers;
         fullParams.swapFeePercentage = minimalParams.swapFeePercentage;
         fullParams.swapEnabledOnStart = minimalParams.swapEnabledOnStart;
+        // Factory enforces public LPs for MPs with NullController.
         fullParams.mustAllowlistLPs = false;
         fullParams.managementAumFeePercentage = minimalParams.managementAumFeePercentage;
         fullParams.aumFeeId = minimalParams.aumFeeId;
+
 
         _lastCreatedPool = managedPoolFactory.create(fullParams, expectedControllerAddress);
 
