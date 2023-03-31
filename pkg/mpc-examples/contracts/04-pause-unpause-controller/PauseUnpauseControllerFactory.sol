@@ -112,7 +112,9 @@ contract PauseUnpauseControllerFactory is Ownable {
         fullParams.aumFeeId = minimalParams.aumFeeId;
 
 
-        _lastCreatedPool = managedPoolFactory.create(fullParams, expectedControllerAddress);
+        IManagedPool pool = IManagedPool(managedPoolFactory.create(fullParams, expectedControllerAddress));
+        _lastCreatedPool = address(pool);
+
 
         address actualControllerAddress = Create2.deploy(0, controllerSalt, controllerCreationCode);
         require(expectedControllerAddress == actualControllerAddress, "Deploy failed");
@@ -121,7 +123,7 @@ contract PauseUnpauseControllerFactory is Ownable {
         isControllerFromFactory[actualControllerAddress] = true;
 
         // Log controller globally.
-        emit ControllerCreated(actualControllerAddress, IManagedPool(_lastCreatedPool).getPoolId());
+        emit ControllerCreated(actualControllerAddress, pool.getPoolId());
     }
 
     /**
