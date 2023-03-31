@@ -72,30 +72,37 @@ contract PauseUnpauseController is Ownable {
     }
 
     /**
-     * @notice Unpauses the pool in a safe or unsafe manner.
+     * @notice Safely unpauses the pool.
      * @dev A safe unpause is desirable as the market likely had price movements
      * which have not been reflected in a paused pool. In order to not leak too much
      * arbitrage losses, the controller adjusts swap fees of the managed pool to
      * _MAX_SWAP_FEE_PERCENTAGE instantly and let's the market bring the pool back
      * into balance via minimal viable arbitrage.
-     * @param shouldSafeUnpause Decision to safely unpause the pool.
      */
 
     /* solhint-disable not-rely-on-time */
-    function unpausePool(bool shouldSafeUnpause) external onlyOwner returns (bool) {
-        if (shouldSafeUnpause) {
-            _getPool().updateSwapFeeGradually(
+    function safeUnpausePool() external onlyOwner returns(bool) {
+        _getPool().updateSwapFeeGradually(
                 block.timestamp,
                 block.timestamp + _REBALANCE_DURATION,
                 _MAX_SWAP_FEE_PERCENTAGE,
                 _END_SWAP_FEE_PERCENTAGE
             );
-            // Enabling swaps again after having updated the swap fee gradually is fine
-            // even if the the start time is at a future time.
-            _getPool().setSwapEnabled(true);
-        } else {
-            _getPool().setSwapEnabled(true);
-        }
+        // Enabling swaps again after having updated the swap fee gradually is fine
+        // even if the the start time is at a future time.
+        _getPool().setSwapEnabled(true);
+        return true;
+    }
+
+    /**
+     * @notice Dangerously unpause the pool.
+     * @dev A dangeours unpause exposes the pool to arbitrage, if the market has
+     * moved since the pool was paused. The arbitrage opportunities are higher
+     * than the minimal viable arbitrage and the arbitrageur captures this value
+     * instead of the LPs.
+     */
+    function dangrousUnpausePool() external onlyOwner returns (bool) {
+        _getPool().setSwapEnabled(true);
         return true;
     }
 
