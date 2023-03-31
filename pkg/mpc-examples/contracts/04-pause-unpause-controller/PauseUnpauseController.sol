@@ -93,11 +93,10 @@ contract PauseUnpauseController is Ownable {
             // Enabling swaps again after having updated the swap fee gradually is fine
             // even if the the start time is at a future time.
             _getPool().setSwapEnabled(true);
-            return true;
         } else {
             _getPool().setSwapEnabled(true);
-            return true;
         }
+        return true;
     }
 
     /* solhint-enable not-rely-on-time */
