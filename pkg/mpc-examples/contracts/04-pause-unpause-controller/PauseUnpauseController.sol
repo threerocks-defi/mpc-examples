@@ -21,6 +21,7 @@ import "@balancer-labs/v2-interfaces/contracts/pool-utils/IManagedPool.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract PauseUnpauseController is Ownable {
+    //solhint-disable-next-line var-name-mixedcase
     uint256 private immutable _END_SWAP_FEE_PERCENTAGE;
 
     uint256 private constant _MAX_SWAP_FEE_PERCENTAGE = 95e16;
@@ -28,7 +29,11 @@ contract PauseUnpauseController is Ownable {
     IVault private _vault;
     bytes32 private _poolId;
 
-    constructor(IVault vault, address controllerOwner, uint256 endSwapFeePercentage) {
+    constructor(
+        IVault vault,
+        address controllerOwner,
+        uint256 endSwapFeePercentage
+    ) {
         // Get poolId from the factory.
         bytes32 poolId = IManagedPool(ILastCreatedPoolFactory(msg.sender).getLastCreatedPool()).getPoolId();
 
@@ -81,13 +86,13 @@ contract PauseUnpauseController is Ownable {
      */
 
     /* solhint-disable not-rely-on-time */
-    function safeUnpausePool() external onlyOwner returns(bool) {
+    function safeUnpausePool() external onlyOwner returns (bool) {
         _getPool().updateSwapFeeGradually(
-                block.timestamp,
-                block.timestamp + _REBALANCE_DURATION,
-                _MAX_SWAP_FEE_PERCENTAGE,
-                _END_SWAP_FEE_PERCENTAGE
-            );
+            block.timestamp,
+            block.timestamp + _REBALANCE_DURATION,
+            _MAX_SWAP_FEE_PERCENTAGE,
+            _END_SWAP_FEE_PERCENTAGE
+        );
         // Enabling swaps again after having updated the swap fee gradually is fine
         // even if the the start time is at a future time.
         _getPool().setSwapEnabled(true);

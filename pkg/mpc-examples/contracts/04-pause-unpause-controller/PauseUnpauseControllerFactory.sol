@@ -63,14 +63,17 @@ contract PauseUnpauseControllerFactory is Ownable {
         balancerVault = vault;
     }
 
-
     function getLastCreatedPool() external view returns (address) {
         return _lastCreatedPool;
     }
 
     /// === Setters === ///
 
-    function create(MinimalPoolParams calldata minimalParams, address controllerOwner, uint256 endSwapFeePercentage) external {
+    function create(
+        MinimalPoolParams calldata minimalParams,
+        address controllerOwner,
+        uint256 endSwapFeePercentage
+    ) external {
         // checks
         _ensureEnabled();
 
@@ -111,10 +114,8 @@ contract PauseUnpauseControllerFactory is Ownable {
         fullParams.managementAumFeePercentage = minimalParams.managementAumFeePercentage;
         fullParams.aumFeeId = minimalParams.aumFeeId;
 
-
         IManagedPool pool = IManagedPool(managedPoolFactory.create(fullParams, expectedControllerAddress));
         _lastCreatedPool = address(pool);
-
 
         address actualControllerAddress = Create2.deploy(0, controllerSalt, controllerCreationCode);
         require(expectedControllerAddress == actualControllerAddress, "Deploy failed");

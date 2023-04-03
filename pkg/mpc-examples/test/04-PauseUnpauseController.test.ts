@@ -145,16 +145,6 @@ describe('PauseUnpauseController', function () {
       return managedPool;
     }
 
-    async function getManagedPoolFactoryContract(localControllerFactory: Contract): Promise<Contract> {
-      const mpFactoryAddress = localControllerFactory.managedPoolFactory();
-      const managedPoolFactoryAbi = await getBalancerContractAbi(
-        'deprecated/20221021-managed-pool',
-        'ManagedPoolFactory'
-      );
-      const mpFactory = await ethers.getContractAt(managedPoolFactoryAbi, mpFactoryAddress);
-      return mpFactory;
-    }
-
     it('sets the controller address as owner', async () => {
       expect(localController.address).to.equal(await pool.getOwner());
     });
