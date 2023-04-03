@@ -36,7 +36,6 @@ contract CrpController {
         LENGTH // Using LENGTH since `type(<Enum>).max;` not implemented until 0.8.8
     }
 
-
     modifier onlyManager() {
         require(msg.sender == _manager, "Caller not manager");
         _;
@@ -69,6 +68,7 @@ contract CrpController {
         }
     }
 
+    // Passthrough functions to the pool
     function addAllowedAddress(address member) external onlyManager hasRight(CrpRight.ADD_ALLOWED_ADDRESS) {
         _getPool().addAllowedAddress(member);
     }
@@ -114,17 +114,10 @@ contract CrpController {
         _getPool().updateWeightsGradually(startTime, endTime, tokens, endWeights);
     }
 
+    // Rights functions
     function renounceRight(CrpRight right) external onlyManager {
         _rights[right] = false;
         emit RemoveRight(right);
-    }
-
-    function getPoolId() public view returns (bytes32) {
-        return _poolId;
-    }
-
-    function getVault() public view returns (IVault) {
-        return _vault;
     }
 
     function hasRights(CrpRight right) external view returns(bool) {
@@ -145,6 +138,16 @@ contract CrpController {
         return rights;
     }
 
+    // Basic Getters
+    function getPoolId() public view returns (bytes32) {
+        return _poolId;
+    }
+
+    function getVault() public view returns (IVault) {
+        return _vault;
+    }
+
+    // Internal Helpers
     function _getPool() internal view returns (IManagedPool) {
         // 12 byte logical shift left to remove the nonce and specialization setting. We don't need to mask,
         // since the logical shift already sets the upper bits to zero.
