@@ -89,7 +89,7 @@ contract PauseUnpauseControllerFactory is Ownable {
         // during pool creation could undermine the narrative that a paused pool does not have
         // any "token movements". Passing address(0) as the asset manager for all tokens ensures
         // assets cannot be moved via vault.manageBalance. This factory however passes the `expectedControllerAddress`
-        // asthe asset managers, to indicate how passing custom asset managers would work.
+        // as the asset managers, to indicate how passing custom asset managers would work.
         address[] memory assetManagers = new address[](minimalParams.tokens.length);
         for (uint256 i = 0; i < assetManagers.length; i++) {
             assetManagers[i] = expectedControllerAddress;
