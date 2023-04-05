@@ -18,15 +18,24 @@ pragma experimental ABIEncoderV2;
 import "@balancer-labs/v2-interfaces/contracts/vault/IVault.sol";
 import "@balancer-labs/v2-interfaces/contracts/pool-utils/IManagedPool.sol";
 import "@balancer-labs/v2-interfaces/contracts/pool-utils/ILastCreatedPoolFactory.sol";
+import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/SafeERC20.sol";
+
+// import "@balancer-labs/v2-interfaces/contracts/pool-utils/SafeERC20.sol";
 
 /**
  * @title CrpController
- * @notice This is a "Configurable Rights Pool" (CRP) Managed Pool Controller. It implements a 
- * checklist-style of manager permissions. At construction, a deployer defines the permissions 
- * that the manager has. The controller has simple passthroughs to the pool to send transactions 
- * or revert if the action is not allowed.
+ * @notice This is a "Configurable Rights Pool" (CRP) Managed Pool Controller. It implements a
+ * checklist-style of manager permissions. At construction, a deployer defines the permissions
+ * that the manager has. After construction, permissions can be renounced but not added.
+ *
+ * @dev The controller implements (mostly) pass-throughs to the pool to send transactions or
+ * revert if the action is not allowed. The two exceptions to pure pass-throughs are for addToken
+ * and removeToken due to the additional steps needed handle the token transfers
+ * via vault.managePoolBalance(...).
  */
 contract CrpController {
+    using SafeERC20 for IERC20;
+
     IVault private immutable _vault;
     bytes32 private immutable _poolId;
     address private immutable _manager;
@@ -45,7 +54,9 @@ contract CrpController {
         SET_SWAP_ENABLED,
         UPDATE_SWAP_FEE_GRADUALLY,
         UPDATE_WEIGHTS_GRADUALLY,
-        LENGTH // Using LENGTH since `type(<Enum>).max;` not implemented until 0.8.8
+        LENGTH
+        // Using LENGTH since `type(<Enum>).max;` not implemented until 0.8.8
+        // https://blog.soliditylang.org/2021/09/27/solidity-0.8.8-release-announcement/
     }
 
     modifier onlyManager() {
@@ -80,7 +91,7 @@ contract CrpController {
         }
     }
 
-    // Passthrough functions to the pool
+    // Pass-through functions to the pool
     function addAllowedAddress(address member) external onlyManager hasRight(CrpRight.ADD_ALLOWED_ADDRESS) {
         _getPool().addAllowedAddress(member);
     }
@@ -89,11 +100,39 @@ contract CrpController {
         _getPool().removeAllowedAddress(member);
     }
 
-    function addToken(IERC20 tokenToRemove, uint256 burnAmount, address sender) external onlyManager hasRight(CrpRight.ADD_TOKEN) {
-        _getPool().removeToken(tokenToRemove, burnAmount, sender);
+    /**
+     * @notice This is a one of two functions that is not a pure pass-through. Controllers must deposit tokens to a
+     * pool via asset manager when using pool.addToken(...), so there this function must handle that as well.
+     * @notice This requires a token allowance from the manager.
+     */
+    function addToken(IERC20 tokenToAdd, uint256 amount, uint256 tokenToAddNormalizedWeight, uint256 mintAmount, address recipient) external onlyManager hasRight(CrpRight.ADD_TOKEN) {
+        _getPool().addToken(tokenToAdd, address(this), tokenToAddNormalizedWeight, mintAmount, recipient);
+        tokenToAdd.safeTransferFrom(msg.sender, address(this), amount);
+        IVault.PoolBalanceOp[] memory ops = new IVault.PoolBalanceOp[](1);
+        ops[0] = IVault.PoolBalanceOp(IVault.PoolBalanceOpKind.DEPOSIT, getPoolId(), tokenToAdd, amount);
+        getVault().managePoolBalance(ops);
     }
 
+    /**
+     * @notice This is a one of two functions that is not a pure pass-through. Controllers must withdraw tokens from a
+     * pool via asset manager when using pool.removeToken(...), so there this function must handle that as well.
+     */
     function removeToken(IERC20 tokenToRemove, uint256 burnAmount, address sender) external onlyManager hasRight(CrpRight.REMOVE_TOKEN) {
+        IVault vault = getVault();
+
+        // Ensure there is no managed balance. Force manager to handle any managed assets before removing.
+        (uint256 cash, uint256 managed, ,) = vault.getPoolTokenInfo(getPoolId(), tokenToRemove);
+        require(managed == 0, "Non-zero managed balance");
+
+        // Remove full cash balance of tokenToRemove
+        IVault.PoolBalanceOp[] memory ops = new IVault.PoolBalanceOp[](2);
+        // Withdraw full balance from the Vault (this increases managed balance).
+        ops[0] = IVault.PoolBalanceOp(IVault.PoolBalanceOpKind.WITHDRAW, getPoolId(), tokenToRemove, cash);
+        // Set managed balance to zero since all tokens are going to manager here.
+        ops[1] = IVault.PoolBalanceOp(IVault.PoolBalanceOpKind.UPDATE, getPoolId(), tokenToRemove, 0);
+        vault.managePoolBalance(ops);
+        tokenToRemove.safeTransfer(msg.sender, cash);
+
         _getPool().removeToken(tokenToRemove, burnAmount, sender);
     }
 
@@ -137,12 +176,7 @@ contract CrpController {
     }
 
     function getAllRights() external view returns(bool[] memory) {
-
         uint8 numRights = uint8(CrpRight.LENGTH);
-        // uint256 numRights = type(CrpRight).max;
-        //      not implemented until 0.8.8
-        //      https://blog.soliditylang.org/2021/09/27/solidity-0.8.8-release-announcement/
-
         bool[] memory rights = new bool[](numRights);
         for (uint8 i = 0; i < numRights; i++) {
             rights[i] = _hasRight(CrpRight(i));
@@ -173,5 +207,4 @@ contract CrpController {
     function _validateRight(CrpRight right) internal pure {
         require(right < CrpRight.LENGTH, "Invalid right");
     }
-
 }
