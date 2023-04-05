@@ -53,6 +53,10 @@ contract WeightChangerController {
         _poolId = poolId;
     }
 
+    /**
+     * @dev Starts the gradual reweight process to bring the token's weights to 50/50.
+     * @dev Gradual reweight will start when this function is called and take _REWEIGHT_DURATION to complete.
+     */
     function make5050() public {
         uint256[] memory newWeights = new uint256[](2);
         newWeights[0] = 50e16;
@@ -60,6 +64,10 @@ contract WeightChangerController {
         _updateWeights(block.timestamp, block.timestamp + _REWEIGHT_DURATION, getTokens(), newWeights);
     }
 
+    /**
+     * @dev Starts the gradual reweight process to bring the token's weights to 80/20.
+     * @dev Gradual reweight will start when this function is called and take _REWEIGHT_DURATION to complete.
+     */
     function make8020() public {
         uint256[] memory newWeights = new uint256[](2);
         newWeights[0] = 80e16;
@@ -67,6 +75,10 @@ contract WeightChangerController {
         _updateWeights(block.timestamp, block.timestamp + _REWEIGHT_DURATION, getTokens(), newWeights);
     }
 
+    /**
+     * @dev Starts the gradual reweight process to bring the token's weights to 99/01.
+     * @dev Gradual reweight will start when this function is called and take _REWEIGHT_DURATION to complete.
+     */
     function make9901() public {
         uint256[] memory newWeights = new uint256[](2);
         newWeights[0] = 99e16;
@@ -118,7 +130,13 @@ contract WeightChangerController {
         _tokens = ComposablePoolLib.dropBptFromTokens(tokens);
     }
 
-    // Returns the time until weights are updated
+    /**
+     * @dev Updates the weights of the managed pool.
+     * @param startTime The timestamp, in seconds, at when the gradual weight update process starts.
+     * @param endTime The timestamp, in seconds, at when the gradual weight update process is complete.
+     * @param tokens An array of tokens, IERC20, that make up the managed pool.
+     * @param weight The desired end weights of the pool tokens. Must correspond with the tokens parameter.
+     */
     function _updateWeights(
         uint256 startTime,
         uint256 endTime,
