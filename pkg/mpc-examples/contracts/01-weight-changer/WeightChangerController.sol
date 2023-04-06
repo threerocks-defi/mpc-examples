@@ -135,7 +135,7 @@ contract WeightChangerController {
      * @param startTime The timestamp, in seconds, at when the gradual weight update process starts.
      * @param endTime The timestamp, in seconds, at when the gradual weight update process is complete.
      * @param tokens An array of tokens, IERC20, that make up the managed pool.
-     * @param weight The desired end weights of the pool tokens. Must correspond with the tokens parameter.
+     * @param weights The desired end weights of the pool tokens. Must correspond with the tokens parameter.
      */
     function _updateWeights(
         uint256 startTime,
