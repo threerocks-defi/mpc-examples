@@ -25,12 +25,15 @@ import "@balancer-labs/v2-pool-utils/contracts/lib/ComposablePoolLib.sol";
 contract EbuRebalancerController {
     IVault private immutable _vault;
     bytes32 private immutable _poolId;
+    IERC20[] private _tokens;
 
     uint256 private constant _MINIMUM_DURATION_BETWEEN_REBALANCE = 30 days;
     uint256 private constant _REBALANCE_DURATION = 7 days;
     uint256 private constant _MIN_PAUSE_DURATION = 7 days;
+
     uint256 private constant _MAX_SWAP_FEE_PERCENTAGE = 95e16; // 95%
     uint256 private immutable _minSwapFeePercentage;
+
     uint256 private _lastPauseCall;
     uint256 private _lastRebalanceCall;
 
@@ -42,6 +45,10 @@ contract EbuRebalancerController {
 
         // Verify that this is a real Vault and the pool is registered - this call will revert if not.
         vault.getPool(poolId);
+
+        // Set the global tokens variables
+        (IERC20[] memory tokens, , ) = vault.getPoolTokens(poolId);
+        _setTokens(tokens);
 
         // Store Vault and poolId.
         _vault = vault;
@@ -94,9 +101,8 @@ contract EbuRebalancerController {
         return _vault;
     }
 
-    function getPoolTokens() public view returns (IERC20[] memory) {
-        (IERC20[] memory tokens, , ) = _vault.getPoolTokens(_poolId);
-        return ComposablePoolLib.dropBptFromTokens(tokens);
+    function getTokens() public view returns (IERC20[] memory) {
+        return _tokens;
     }
 
     /// === Private and Internal ===
@@ -112,5 +118,9 @@ contract EbuRebalancerController {
 
     function _enableSwaps() internal {
         _getPool().setSwapEnabled(true);
+    }
+
+    function _setTokens(IERC20[] memory tokens) internal {
+        _tokens = ComposablePoolLib.dropBptFromTokens(tokens);
     }
 }
