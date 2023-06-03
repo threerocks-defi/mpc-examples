@@ -62,7 +62,7 @@ contract EbuRebalancerController {
         );
         require(block.timestamp - _lastPauseCall >= _MIN_PAUSE_DURATION, "Pool must be paused for at least 7 days");
         require(isPoolPaused(), "Pool must be paused to call rebalance");
-        
+
         IManagedPool pool = _getPool();
 
         pool.setSwapEnabled(true);
