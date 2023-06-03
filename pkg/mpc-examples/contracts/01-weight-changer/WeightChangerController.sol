@@ -42,9 +42,6 @@ contract WeightChangerController {
         // Get poolId from the factory
         bytes32 poolId = IManagedPool(ILastCreatedPoolFactory(msg.sender).getLastCreatedPool()).getPoolId();
 
-        // Verify that this is a real Vault and the pool is registered - this call will revert if not.
-        vault.getPool(poolId);
-
         // Set the global tokens variables
         (IERC20[] memory tokens, , ) = vault.getPoolTokens(poolId);
         _setTokens(tokens);
@@ -116,6 +113,21 @@ contract WeightChangerController {
     }
 
     /// === Private and Internal ===
+    function _checkWeight(uint256 normalizedWeight) internal pure returns (uint256) {
+        require(normalizedWeight >= _MIN_WEIGHT, "Weight under minimum");
+        require(normalizedWeight <= _MAX_WEIGHT, "Weight over maximum");
+    }
+
+    function _checkWeights(uint256[] memory normalizedWeights) internal pure {
+        uint256 normalizedSum = 0;
+        for (uint256 i = 0; i < normalizedWeights.length; i++) {
+            _checkWeight(normalizedWeights[i]);
+            normalizedSum = normalizedSum.add(normalizedWeights[i]);
+        }
+
+        require(normalizedSum == FixedPoint.ONE, "Weights must sum to one");
+    }
+
     function _getPoolFromId(bytes32 poolId) internal pure returns (IManagedPool) {
         // 12 byte logical shift left to remove the nonce and specialization setting. We don't need to mask,
         // since the logical shift already sets the upper bits to zero.
@@ -143,22 +155,7 @@ contract WeightChangerController {
         IERC20[] memory tokens,
         uint256[] memory weights
     ) internal {
-        _verifyWeights(weights);
+        _checkWeights(weights);
         _getPool().updateWeightsGradually(startTime, endTime, tokens, weights);
-    }
-
-    function _verifyWeight(uint256 normalizedWeight) internal pure returns (uint256) {
-        require(normalizedWeight >= _MIN_WEIGHT, "Weight under minimum");
-        require(normalizedWeight <= _MAX_WEIGHT, "Weight over maximum");
-        return normalizedWeight;
-    }
-
-    function _verifyWeights(uint256[] memory normalizedWeights) internal pure {
-        uint256 normalizedSum = 0;
-        for (uint256 i = 0; i < normalizedWeights.length; i++) {
-            normalizedSum = normalizedSum.add(_verifyWeight(normalizedWeights[i]));
-        }
-
-        require(normalizedSum == FixedPoint.ONE, "Weights must sum to one");
     }
 }
