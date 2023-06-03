@@ -133,7 +133,7 @@ describe('EbuRebalancerController', () => {
       const poolId = await ebuRebalancerController.getPoolId();
       let tokens = await ebuRebalancerController.getTokens();
 
-      for (let i = 0;i < tokens.length;i++) {
+      for (let i = 0; i < tokens.length; i++) {
         const info = await vault.getPoolTokenInfo(poolId, tokens[i]);
         assert.equal(info.assetManager, ebuRebalancerController.address);
       }
@@ -174,7 +174,7 @@ describe('EbuRebalancerController', () => {
       await fastForward(time.WEEK);
       await ebuRebalancerController.pausePool();
 
-      for (let i = 1;i <= intervals;i++) {
+      for (let i = 1; i <= intervals; i++) {
         await fastForward(timePerStep);
 
         if (i != intervals) {
@@ -193,7 +193,7 @@ describe('EbuRebalancerController', () => {
       const timePerStep = time.MONTH / intervals;
       const pauseInterval = Math.ceil(intervals / 2);
 
-      for (let i = 1;i <= intervals;i++) {
+      for (let i = 1; i <= intervals; i++) {
         await fastForward(timePerStep);
         if (i != intervals) {
           await expect(ebuRebalancerController.rebalancePool()).to.be.revertedWith(
