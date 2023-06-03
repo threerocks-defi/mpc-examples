@@ -20,7 +20,7 @@ import "@balancer-labs/v2-interfaces/contracts/vault/IVault.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/Create2.sol";
 
 import "../interfaces/IManagedPoolFactory.sol";
-import "./EBURebalancerController.sol";
+import "./EbuRebalancerController.sol";
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 
