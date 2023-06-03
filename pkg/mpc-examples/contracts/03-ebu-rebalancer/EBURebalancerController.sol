@@ -43,9 +43,6 @@ contract EbuRebalancerController {
         // Get poolId from the factory.
         bytes32 poolId = IManagedPool(ILastCreatedPoolFactory(msg.sender).getLastCreatedPool()).getPoolId();
 
-        // Verify that this is a real Vault and the pool is registered - this call will revert if not.
-        vault.getPool(poolId);
-
         // Set the global tokens variables
         (IERC20[] memory tokens, , ) = vault.getPoolTokens(poolId);
         _setTokens(tokens);
