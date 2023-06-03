@@ -62,11 +62,13 @@ contract EbuRebalancerController {
         );
         require(block.timestamp - _lastPauseCall >= _MIN_PAUSE_DURATION, "Pool must be paused for at least 7 days");
         require(isPoolPaused(), "Pool must be paused to call rebalance");
+        
+        IManagedPool pool = _getPool();
 
-        _enableSwaps();
+        pool.setSwapEnabled(true);
 
         // Updates swap fee from max fee (near 100%) to min fee (near 0%).```
-        _getPool().updateSwapFeeGradually(
+        pool.updateSwapFeeGradually(
             block.timestamp,
             block.timestamp + _REBALANCE_DURATION,
             _MAX_SWAP_FEE_PERCENTAGE,
@@ -111,10 +113,6 @@ contract EbuRebalancerController {
 
     function _getPool() internal view returns (IManagedPool) {
         return _getPoolFromId(getPoolId());
-    }
-
-    function _enableSwaps() internal {
-        _getPool().setSwapEnabled(true);
     }
 
     function _setTokens(IERC20[] memory tokens) internal {
