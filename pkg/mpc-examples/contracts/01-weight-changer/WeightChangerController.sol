@@ -113,7 +113,7 @@ contract WeightChangerController {
     }
 
     /// === Private and Internal ===
-    function _checkWeight(uint256 normalizedWeight) internal pure returns (uint256) {
+    function _checkWeight(uint256 normalizedWeight) internal pure {
         require(normalizedWeight >= _MIN_WEIGHT, "Weight under minimum");
         require(normalizedWeight <= _MAX_WEIGHT, "Weight over maximum");
     }
