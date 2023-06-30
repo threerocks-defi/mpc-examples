@@ -8,10 +8,16 @@
 This repository contains simplified examples of possible functionality in a Managed Pool Controller. These controllers are provided as examples for informational purposes only and have not been audited.
 
 # Controllers
+
 | Number | Controller      | Description |
 | ----------- | ----------- | ----------- |
 | 00 | [NullController](./pkg/mpc-examples/contracts/00-null-controller/README.md) | Empty controller that does nothing |
 | 01 | [WeightChangerController](./pkg/mpc-examples/contracts/01-weight-changer/README.md) | Controller that allows users to gradually update token weights |
+
+| Number | Controller      | Description                                                              |
+| ----------- | ----------- |--------------------------------------------------------------------------|
+| 00 | [NullController](./pkg/mpc-examples/contracts/00-null-controller/README.md) | Empty controller that does nothing                                       |
+| 03 | [EbuRebalancerController](./pkg/mpc-examples/contracts/03-ebu-rebalancer/README.md) | Controller that implements a static weighted basket of tokens. Can be rebalanced back to intended weights with a swap fee rebalance. |
 
 ## Build and Test
 
