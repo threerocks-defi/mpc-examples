@@ -21,19 +21,19 @@ import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/Create2.sol";
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 
+import "./WeightChangerController.sol";
 import "../interfaces/IManagedPoolFactory.sol";
-import "./NullController.sol";
 
 /**
- * @title NullControllerFactory
- * @notice Factory for a Managed Pool and NullController.
+ * @title WeightChangerControllerFactory
+ * @notice Factory for a Managed Pool and Weight Changer Controller.
  * @dev Determines controller deployment address, deploys pool (w/ controller address as argument), then controller.
  */
-contract NullControllerFactory is Ownable {
+contract WeightChangerControllerFactory is Ownable {
     mapping(address => bool) public isControllerFromFactory;
 
-    address public immutable managedPoolFactory;
-    IVault public immutable balancerVault;
+    address public managedPoolFactory;
+    IVault public balancerVault;
     bool private _disabled;
 
     uint256 private _nextControllerSalt;
@@ -53,7 +53,7 @@ contract NullControllerFactory is Ownable {
         uint256 aumFeeId;
     }
 
-    event ControllerCreated(address indexed controller, bytes32 poolId);
+    event ControllerCreated(address indexed controller, IVault vault, bytes32 poolId);
     event Disabled();
 
     constructor(IVault vault, address factory) {
@@ -68,9 +68,6 @@ contract NullControllerFactory is Ownable {
         return _lastCreatedPool;
     }
 
-    /**
-     * @dev Deploy a Managed Pool and a Controller.
-     */
     function create(MinimalPoolParams calldata minimalParams) external {
         _ensureEnabled();
 
@@ -78,7 +75,7 @@ contract NullControllerFactory is Ownable {
         _nextControllerSalt += 1;
 
         bytes memory controllerCreationCode = abi.encodePacked(
-            type(NullController).creationCode,
+            type(WeightChangerController).creationCode,
             abi.encode(balancerVault)
         );
         address expectedControllerAddress = Create2.computeAddress(controllerSalt, keccak256(controllerCreationCode));
@@ -100,7 +97,7 @@ contract NullControllerFactory is Ownable {
         fullParams.assetManagers = assetManagers;
         fullParams.swapFeePercentage = minimalParams.swapFeePercentage;
         fullParams.swapEnabledOnStart = minimalParams.swapEnabledOnStart;
-        // Factory enforces public LPs for MPs with NullController.
+        // Factory enforces public LPs for MPs with WeightChanger.
         fullParams.mustAllowlistLPs = false;
         fullParams.managementAumFeePercentage = minimalParams.managementAumFeePercentage;
         fullParams.aumFeeId = minimalParams.aumFeeId;
@@ -117,7 +114,7 @@ contract NullControllerFactory is Ownable {
         isControllerFromFactory[actualControllerAddress] = true;
 
         // Log controller publicly.
-        emit ControllerCreated(actualControllerAddress, pool.getPoolId());
+        emit ControllerCreated(actualControllerAddress, balancerVault, pool.getPoolId());
     }
 
     /**
@@ -151,6 +148,6 @@ contract NullControllerFactory is Ownable {
      */
     function _ensureEnabled() internal view {
         require(!_disabled, "Controller factory disabled");
-        require(!_isPoolFactoryDisabled(), "Pool factory disabled");
+        require(!IManagedPoolFactory(managedPoolFactory).isDisabled(), "Pool factory disabled");
     }
 }
