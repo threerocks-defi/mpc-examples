@@ -15,26 +15,28 @@
 pragma solidity ^0.7.0;
 pragma experimental ABIEncoderV2;
 
+import "../interfaces/IManagedPoolFactory.sol";
+
+import "@balancer-labs/v2-interfaces/contracts/pool-utils/ILastCreatedPoolFactory.sol";
 import "@balancer-labs/v2-interfaces/contracts/pool-utils/IManagedPool.sol";
 import "@balancer-labs/v2-interfaces/contracts/vault/IVault.sol";
+
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/Create2.sol";
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-import "../interfaces/IManagedPoolFactory.sol";
-import "./NullController.sol";
+import "./PauseUnpauseController.sol";
 
 /**
- * @title NullControllerFactory
- * @notice Factory for a Managed Pool and NullController.
- * @dev Determines controller deployment address, deploys pool (w/ controller address as argument), then controller.
+ * @title PauseUnpauseControllerFactory
+ * @notice A factory contract able to create controller contract for Balancer's managed pools.
  */
-contract NullControllerFactory is Ownable {
+contract PauseUnpauseControllerFactory is Ownable {
     mapping(address => bool) public isControllerFromFactory;
 
-    address public immutable managedPoolFactory;
+    IManagedPoolFactory public immutable managedPoolFactory;
+    bool private _disabled;
     IVault public immutable balancerVault;
-    bool public isDisabled;
 
     uint256 private _nextControllerSalt;
     address private _lastCreatedPool;
@@ -57,34 +59,40 @@ contract NullControllerFactory is Ownable {
     event Disabled();
 
     constructor(IVault vault, address factory) {
+        managedPoolFactory = IManagedPoolFactory(factory);
         balancerVault = vault;
-        managedPoolFactory = factory;
     }
 
-    /**
-     * @dev Return the address of the most recently created pool.
-     */
     function getLastCreatedPool() external view returns (address) {
         return _lastCreatedPool;
     }
 
-    /**
-     * @dev Deploy a Managed Pool and a Controller.
-     */
-    function create(MinimalPoolParams calldata minimalParams) external {
-        require(!isDisabled, "Controller factory disabled");
-        require(!IManagedPoolFactory(managedPoolFactory).isDisabled(), "Pool factory disabled");
+    /// === Setters === ///
+
+    function create(
+        MinimalPoolParams calldata minimalParams,
+        address controllerOwner,
+        uint256 endSwapFeePercentage
+    ) external {
+        // checks
+        _ensureEnabled();
 
         bytes32 controllerSalt = bytes32(_nextControllerSalt);
         _nextControllerSalt += 1;
 
         bytes memory controllerCreationCode = abi.encodePacked(
-            type(NullController).creationCode,
-            abi.encode(balancerVault)
+            type(PauseUnpauseController).creationCode,
+            abi.encode(balancerVault, controllerOwner, endSwapFeePercentage) //constructor args
         );
+
         address expectedControllerAddress = Create2.computeAddress(controllerSalt, keccak256(controllerCreationCode));
 
-        // Build arguments to deploy pool from factory.
+        // The asset managers have the ability to call vault.managePoolBalance. Since this controller
+        // is focused on a secure pause/unpausing, allowing to freely pass asset managers
+        // during pool creation could undermine the narrative that a paused pool does not have
+        // any "token movements". Passing address(0) as the asset manager for all tokens ensures
+        // assets cannot be moved via vault.manageBalance. This factory however passes the `expectedControllerAddress`
+        // as the asset managers, to indicate how passing custom asset managers would work.
         address[] memory assetManagers = new address[](minimalParams.tokens.length);
         for (uint256 i = 0; i < assetManagers.length; i++) {
             assetManagers[i] = expectedControllerAddress;
@@ -106,9 +114,7 @@ contract NullControllerFactory is Ownable {
         fullParams.managementAumFeePercentage = minimalParams.managementAumFeePercentage;
         fullParams.aumFeeId = minimalParams.aumFeeId;
 
-        IManagedPool pool = IManagedPool(
-            IManagedPoolFactory(managedPoolFactory).create(fullParams, expectedControllerAddress)
-        );
+        IManagedPool pool = IManagedPool(managedPoolFactory.create(fullParams, expectedControllerAddress));
         _lastCreatedPool = address(pool);
 
         address actualControllerAddress = Create2.deploy(0, controllerSalt, controllerCreationCode);
@@ -117,7 +123,7 @@ contract NullControllerFactory is Ownable {
         // Log controller locally.
         isControllerFromFactory[actualControllerAddress] = true;
 
-        // Log controller publicly.
+        // Log controller globally.
         emit ControllerCreated(actualControllerAddress, pool.getPoolId());
     }
 
@@ -128,7 +134,23 @@ contract NullControllerFactory is Ownable {
      * be implemented to allow for different needs.
      */
     function disable() external onlyOwner {
-        isDisabled = true;
+        _ensureEnabled();
+        _disabled = true;
         emit Disabled();
+    }
+
+    /// === Internal === ///
+
+    function _ensureEnabled() internal view {
+        require(!isDisabled(), "Controller factory is disabled");
+        require(!managedPoolFactory.isDisabled(), "managed Pool factory disabled");
+    }
+
+    function isDisabled() public view returns (bool) {
+        return _disabled || _isPoolFactoryDisabled();
+    }
+
+    function _isPoolFactoryDisabled() internal view returns (bool) {
+        return managedPoolFactory.isDisabled();
     }
 }

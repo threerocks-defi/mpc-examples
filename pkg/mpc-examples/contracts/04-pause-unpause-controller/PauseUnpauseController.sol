@@ -1,0 +1,127 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+pragma solidity ^0.7.0;
+pragma experimental ABIEncoderV2;
+
+import "@balancer-labs/v2-interfaces/contracts/pool-utils/ILastCreatedPoolFactory.sol";
+import "@balancer-labs/v2-interfaces/contracts/pool-utils/IManagedPool.sol";
+
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+contract PauseUnpauseController is Ownable {
+    //solhint-disable-next-line var-name-mixedcase
+    uint256 private immutable _END_SWAP_FEE_PERCENTAGE;
+
+    uint256 private constant _MAX_SWAP_FEE_PERCENTAGE = 95e16;
+    uint256 private constant _REBALANCE_DURATION = 3 days;
+    IVault private _vault;
+    bytes32 private _poolId;
+
+    constructor(
+        IVault vault,
+        address controllerOwner,
+        uint256 endSwapFeePercentage
+    ) {
+        // Get poolId from the factory.
+        bytes32 poolId = IManagedPool(ILastCreatedPoolFactory(msg.sender).getLastCreatedPool()).getPoolId();
+
+        // Verify that this is a real Vault and the pool is registered - this call will revert if not.
+        vault.getPool(poolId);
+
+        // store Vault and PoolId.
+        _poolId = poolId;
+        _vault = vault;
+
+        _END_SWAP_FEE_PERCENTAGE = endSwapFeePercentage;
+
+        // Transfer ownership from factory to manager.
+        transferOwnership(controllerOwner);
+    }
+
+    /// === public Getters ===
+
+    function getPoolId() public view returns (bytes32) {
+        return _poolId;
+    }
+
+    function getVault() public view returns (IVault) {
+        return _vault;
+    }
+
+    function isPoolPaused() public view returns (bool) {
+        return !_getPool().getSwapEnabled();
+    }
+
+    /// === Setters ===
+
+    /**
+     * @notice Disables swapping.
+     */
+    function pausePool() external onlyOwner returns (bool) {
+        require(!isPoolPaused(), "swapping with pool is already paused");
+        _getPool().setSwapEnabled(false);
+        // pool is confirmed paused
+        return true;
+    }
+
+    /**
+     * @notice Safely unpauses the pool.
+     * @dev A safe unpause is desirable as the market likely had price movements
+     * which have not been reflected in a paused pool. In order to not leak too much
+     * arbitrage losses, the controller adjusts swap fees of the managed pool to
+     * _MAX_SWAP_FEE_PERCENTAGE instantly and let's the market bring the pool back
+     * into balance via minimal viable arbitrage.
+     */
+
+    /* solhint-disable not-rely-on-time */
+    function safeUnpausePool() external onlyOwner returns (bool) {
+        _getPool().updateSwapFeeGradually(
+            block.timestamp,
+            block.timestamp + _REBALANCE_DURATION,
+            _MAX_SWAP_FEE_PERCENTAGE,
+            _END_SWAP_FEE_PERCENTAGE
+        );
+        // Enabling swaps again after having updated the swap fee gradually is fine
+        // even if the the start time is at a future time.
+        _getPool().setSwapEnabled(true);
+        return true;
+    }
+
+    /**
+     * @notice Dangerously unpause the pool.
+     * @dev A dangeours unpause exposes the pool to arbitrage, if the market has
+     * moved since the pool was paused. The arbitrage opportunities are higher
+     * than the minimal viable arbitrage and the arbitrageur captures this value
+     * instead of the LPs.
+     */
+    function dangrousUnpausePool() external onlyOwner returns (bool) {
+        _getPool().setSwapEnabled(true);
+        return true;
+    }
+
+    /* solhint-enable not-rely-on-time */
+
+    /// === Private and Internal ===
+
+    function _getPoolFromId(bytes32 poolId) internal pure returns (IManagedPool) {
+        // 12 byte logical shift left to remove the nonce and specialization setting. We don't need to mask,
+        // since the logical shift already sets the upper bits to zero.
+        return IManagedPool(address(uint256(poolId) >> (12 * 8)));
+    }
+
+    function _getPool() internal view returns (IManagedPool) {
+        return _getPoolFromId(_poolId);
+    }
+}
